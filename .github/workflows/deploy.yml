@@ -9,7 +9,7 @@ on:
 env:
   AWS_REGION:       us-east-1
   ECR_REPOSITORY:   lms-app
-  EKS_CLUSTER_NAME: lms-eks-cluster
+  EKS_CLUSTER_NAME: unique-country-party
   K8S_NAMESPACE:    lms
 
 jobs:

@@ -217,3 +217,35 @@ resource "aws_ecr_repository" "lms_app" {
 
   tags = { Name = "lms-app" }
 }
+
+# ── RDS (Cloud Database) ────────────────────────────────────────────
+resource "aws_db_subnet_group" "lms_db_subnet" {
+  name       = "lms-db-subnet"
+  subnet_ids = aws_subnet.private[*].id
+
+  tags = {
+    Name = "lms-db-subnet"
+  }
+}
+
+resource "aws_db_instance" "lms_db" {
+  identifier         = "lms-db"
+  engine             = "mysql"
+  instance_class     = "db.t3.micro"
+  allocated_storage  = 20
+
+  db_name  = "online_exam"
+  username = "admin"
+  password = "Admin1234"
+
+  db_subnet_group_name = aws_db_subnet_group.lms_db_subnet.name
+
+  vpc_security_group_ids = []
+
+  publicly_accessible = true
+  skip_final_snapshot = true
+
+  tags = {
+    Name = "lms-db"
+  }
+}

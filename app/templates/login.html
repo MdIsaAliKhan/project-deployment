@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In — UniLMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body style="display:block">
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="logo-icon">🎓</div>
+      <div>
+        <div class="logo-name">UniLMS</div>
+        <div class="logo-sub">University Learning Portal</div>
+      </div>
+    </div>
+    <h1 class="auth-title">Welcome back</h1>
+    <p class="auth-sub">Enter your credentials to access your account.</p>
+
+    {% if error %}
+    <div class="alert alert-error mb-3">⚠️ {{ error }}</div>
+    {% endif %}
+
+    <form method="POST" action="{{ url_for('auth.login') }}">
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" name="email" class="form-control" placeholder="you@university.edu" required autofocus>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" class="form-control" placeholder="Enter your password" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block btn-lg" style="margin-top:4px">
+        Sign In →
+      </button>
+    </form>
+
+    {% if face_auth_enabled %}
+    <div class="alert alert-info mt-3" style="margin-top:16px;font-size:.82rem">
+      📸 Face verification is enabled. You'll be asked to verify your identity after sign in.
+    </div>
+    {% endif %}
+
+    <p style="text-align:center;margin-top:20px;font-size:.83rem;color:var(--text2)">
+      New student?
+      <a href="{{ url_for('auth.register') }}" style="color:var(--accent);font-weight:600">Register an account</a>
+    </p>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Identity Verification — UniLMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body style="display:block">
+<div class="auth-wrap">
+  <div class="cam-card">
+
+    <!-- Header -->
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="width:52px;height:52px;background:var(--accent);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin:0 auto 12px">📸</div>
+      <h1 style="font-size:1.2rem;font-weight:700;color:var(--text)">Face Verification</h1>
+      <p style="font-size:.82rem;color:var(--text2);margin-top:4px">Identity Confirmation — Step 2 of 2</p>
+    </div>
+
+    <!-- Instruction -->
+    <div style="background:var(--accent-lt);border:1px solid var(--accent-bd);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:18px;text-align:center">
+      <p style="font-size:.83rem;color:var(--accent);line-height:1.5">
+        Position your face inside the oval frame below, ensure good lighting, then click <strong>Verify Identity</strong>.
+      </p>
+    </div>
+
+    {% if error %}
+    <div class="alert alert-error" style="margin-bottom:16px">⚠️ {{ error }}</div>
+    {% endif %}
+
+    <!-- Camera Frame -->
+    <div class="cam-frame" id="cam-frame" style="margin-bottom:10px">
+      <!--
+        The video is displayed MIRRORED (transform:scaleX(-1)) so the user sees
+        a natural selfie view — moving left = image moves left.
+        The canvas capture draws WITHOUT mirror so face_recognition gets the
+        correct spatial orientation.
+      -->
+      <video id="camera-feed" autoplay playsinline muted
+        style="transform:scaleX(-1);width:100%;height:100%;object-fit:cover;display:block"></video>
+      <canvas id="face-canvas" style="display:none;width:100%;height:100%;object-fit:cover"></canvas>
+      <div class="cam-overlay cam-pulse" id="cam-overlay"></div>
+    </div>
+
+    <div class="cam-status" id="cam-status">
+      <div class="spinner" id="cam-spinner"></div>
+    </div>
+
+    <!-- Verifying overlay -->
+    <div id="verifying-overlay" style="display:none;text-align:center;padding:10px 0 14px">
+      <div class="spinner" style="margin:0 auto 10px"></div>
+      <p style="font-size:.83rem;color:var(--text2);font-weight:500">Verifying your identity, please wait…</p>
+    </div>
+
+    <!-- Success overlay -->
+    <div id="success-overlay" style="display:none;text-align:center;padding:10px 0 14px">
+      <div style="font-size:2rem;margin-bottom:8px">✅</div>
+      <p style="font-size:.9rem;font-weight:600;color:var(--green)">Identity verified! Logging you in…</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('auth.face_verify') }}" id="verify-form">
+      <input type="hidden" name="face_image" id="face_image_data">
+      <div style="display:flex;gap:8px">
+        <button type="button" class="btn btn-primary btn-lg" style="flex:1;justify-content:center"
+          id="verify-btn" onclick="captureAndVerify()">
+          🔍 Verify Identity
+        </button>
+        <button type="button" class="btn btn-ghost btn-sm" id="retake-btn"
+          onclick="retakePhoto()" style="display:none;white-space:nowrap">🔄 Retake</button>
+      </div>
+    </form>
+
+    <!-- Tips box -->
+    <div style="margin-top:18px;padding:14px;background:var(--surface2);border-radius:var(--radius-sm);border:1px solid var(--border)">
+      <p style="font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px">💡 Tips for best results</p>
+      <ul style="list-style:none;display:flex;flex-direction:column;gap:3px">
+        <li style="font-size:.76rem;color:var(--text3)">• Face the camera directly with both eyes visible</li>
+        <li style="font-size:.76rem;color:var(--text3)">• Ensure bright, even front lighting (avoid backlight)</li>
+        <li style="font-size:.76rem;color:var(--text3)">• Remove glasses, hats or face coverings if possible</li>
+        <li style="font-size:.76rem;color:var(--text3)">• Keep only one person in the camera frame</li>
+      </ul>
+    </div>
+
+    <p style="text-align:center;margin-top:16px;font-size:.8rem;color:var(--text3)">
+      <a href="{{ url_for('auth.login') }}" style="color:var(--accent)">← Back to Sign In</a>
+    </p>
+  </div>
+</div>
+
+<script>
+  const video       = document.getElementById('camera-feed');
+  const canvas      = document.getElementById('face-canvas');
+  const statusEl    = document.getElementById('cam-status');
+  const spinner     = document.getElementById('cam-spinner');
+  const overlay     = document.getElementById('cam-overlay');
+  const hiddenInput = document.getElementById('face_image_data');
+  const verifyBtn   = document.getElementById('verify-btn');
+  const retakeBtn   = document.getElementById('retake-btn');
+  let stream = null;
+  let photoTaken = false;
+
+  async function startCamera() {
+    spinner.style.display = 'block';
+    statusEl.innerHTML = '';
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+      });
+      video.srcObject = stream;
+      video.style.display = 'block';
+      canvas.style.display = 'none';
+      spinner.style.display = 'none';
+      overlay.classList.add('cam-pulse');
+      statusEl.innerHTML = '<span style="color:var(--green);font-size:.82rem">✅ Camera ready — centre your face in the oval</span>';
+    } catch(err) {
+      spinner.style.display = 'none';
+      statusEl.innerHTML = '<span style="color:var(--red);font-size:.82rem">❌ Camera access denied. Please allow camera permissions and refresh.</span>';
+    }
+  }
+
+  function captureAndVerify() {
+    if (!stream && !photoTaken) {
+      statusEl.innerHTML = '<span style="color:var(--red);font-size:.82rem">❌ Camera not available.</span>';
+      return;
+    }
+    if (photoTaken) { submitForm(); return; }
+
+    // Capture UNMIRRORED frame for face recognition
+    const ctx = canvas.getContext('2d');
+    canvas.width  = video.videoWidth  || 640;
+    canvas.height = video.videoHeight || 480;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    hiddenInput.value = canvas.toDataURL('image/jpeg', 0.95);
+
+    video.style.display  = 'none';
+    canvas.style.display = 'block';
+    overlay.classList.remove('cam-pulse');
+    statusEl.innerHTML = '<span style="color:var(--green);font-size:.82rem">✅ Photo captured — submitting for verification…</span>';
+    photoTaken = true;
+    retakeBtn.style.display = 'inline-flex';
+
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    submitForm();
+  }
+
+  function submitForm() {
+    document.getElementById('verifying-overlay').style.display = 'block';
+    verifyBtn.disabled = true;
+    verifyBtn.textContent = '⏳ Verifying…';
+    setTimeout(() => document.getElementById('verify-form').submit(), 600);
+  }
+
+  function retakePhoto() {
+    canvas.style.display = 'none';
+    video.style.display  = 'block';
+    hiddenInput.value    = '';
+    photoTaken           = false;
+    retakeBtn.style.display = 'none';
+    verifyBtn.disabled   = false;
+    verifyBtn.innerHTML  = '🔍 Verify Identity';
+    document.getElementById('verifying-overlay').style.display = 'none';
+    statusEl.textContent = 'Restarting camera…';
+    startCamera();
+  }
+
+  startCamera();
+</script>
+</body>
+</html>

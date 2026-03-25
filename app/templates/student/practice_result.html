@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Practice Result — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "student/_sidebar.html" %}{% endblock %}
+{% block content %}
+{% if exam and result %}
+<div style="max-width:760px;margin:0 auto">
+<div class="result-hero" style="border-top:4px solid var(--purple)">
+  <div class="score-circle" style="background:var(--purple-bg);border-color:var(--purple)">
+    <div class="score-num" style="color:var(--purple)">{{ result.score }}</div>
+    <div class="score-label">/ {{ exam.total_marks }}</div>
+  </div>
+  <h2 style="margin-bottom:4px">🏋️ {{ exam.title }}</h2>
+  <div class="badge badge-purple mb-3" style="margin-bottom:10px">{{ exam.group_name }}</div>
+  <div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap">
+    <span class="badge badge-green">✅ {{ result.correct_count }} correct</span>
+    <span class="badge badge-red">❌ {{ result.wrong_count }} wrong</span>
+    <span class="badge badge-gray">⏭️ {{ result.skipped_count }} skipped</span>
+  </div>
+</div>
+
+{% if details %}
+<div class="card">
+  <div class="card-header">📋 Answer Review</div>
+  {% for d in details %}
+  <div style="padding:16px 20px;border-bottom:1px solid var(--border)">
+    <div class="text-xs text-light mb-1">Q{{ loop.index }}</div>
+    <div style="font-weight:600;margin-bottom:8px">{{ d.question }}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      {% for opt, label in [('a','A'),('b','B'),('c','C'),('d','D')] %}
+      <div style="padding:6px 10px;border-radius:6px;font-size:.82rem;
+        {% if d.correct_option == opt %}background:var(--green-bg);border:1px solid var(--green-bd);color:var(--green);font-weight:600
+        {% elif d.selected_option == opt and not d.is_correct %}background:var(--red-bg);border:1px solid var(--red-bd);color:var(--red)
+        {% else %}background:var(--surface2);border:1px solid var(--border){% endif %}">
+        {{ label }}. {{ d['option_' + opt] }}
+        {% if d.correct_option == opt %} ✓{% elif d.selected_option == opt %} ✗{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+<div style="text-align:center;margin-top:20px">
+  <a href="{{ url_for('student.practice') }}" class="btn btn-outline">← Back to Practice</a>
+</div>
+</div>
+{% endif %}
+{% endblock %}

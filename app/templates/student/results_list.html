@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}My Results — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "student/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1>📊 My Results</h1><p>All your MCQ exam submissions</p></div>
+<div class="card">
+  <div class="table-wrap"><table>
+    <thead><tr><th>Exam</th><th>Score</th><th>%</th><th>Correct</th><th>Wrong</th><th>Skipped</th><th>Date</th><th></th></tr></thead>
+    <tbody>
+    {% for r in results %}
+    <tr>
+      <td style="font-weight:600">{{ r.title }}</td>
+      <td><strong>{{ r.score }}</strong><span class="text-muted">/{{ r.total_marks }}</span></td>
+      <td>
+        {% if r.total_marks %}
+        {% set pct = (r.score / r.total_marks * 100)|round(1) %}
+        <span class="{% if pct >= 60 %}text-green{% elif pct >= 40 %}text-amber{% else %}text-red{% endif %} font-semibold">{{ pct }}%</span>
+        {% else %}–{% endif %}
+      </td>
+      <td><span class="badge badge-green">{{ r.correct_count }}</span></td>
+      <td><span class="badge badge-red">{{ r.wrong_count }}</span></td>
+      <td><span class="badge badge-gray">{{ r.skipped_count }}</span></td>
+      <td class="text-xs text-muted">{{ r.submitted_at.strftime('%d %b %Y') if r.submitted_at else '-' }}</td>
+      <td><a href="{{ url_for('student.result', exam_id=r.exam_id) }}" class="btn btn-outline btn-sm">Review</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="8"><div class="empty-state" style="padding:40px"><div class="empty-icon">📊</div><h3>No Results Yet</h3>
+    <p>Attempt an exam to see your results here.</p></div></td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

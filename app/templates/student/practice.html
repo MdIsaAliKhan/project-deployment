@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Practice Exams — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "student/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1>🏋️ Practice Exams</h1><p>Group-assigned practice exams to help you improve</p></div>
+{% if exams %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px">
+{% for exam in exams %}
+<div class="card">
+  <div class="card-body">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+      <div style="font-weight:700">{{ exam.title }}</div>
+      {% if exam.attempted %}<span class="badge badge-green">✅ Done</span>
+      {% else %}<span class="badge badge-purple">🏋️ Practice</span>{% endif %}
+    </div>
+    <div class="badge badge-gray mb-3" style="margin-bottom:10px;font-size:.72rem">👥 {{ exam.group_name }}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
+      <div class="text-sm text-muted">❓ {{ exam.question_count }} questions</div>
+      <div class="text-sm text-muted">⏱️ {{ exam.duration_minutes }} min</div>
+    </div>
+    {% if exam.attempted %}
+    <a href="{{ url_for('student.practice_result', exam_id=exam.id) }}" class="btn btn-outline btn-block">📊 View Result</a>
+    {% else %}
+    <a href="{{ url_for('student.practice_exam', exam_id=exam.id) }}" class="btn btn-purple btn-block" style="background:var(--purple);color:#fff">Start Practice →</a>
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+</div>
+{% else %}
+<div class="card"><div class="card-body"><div class="empty-state">
+  <div class="empty-icon">🏋️</div><h3>No Practice Exams</h3>
+  <p>You haven't been assigned to any practice groups yet. Contact your instructor.</p>
+</div></div></div>
+{% endif %}
+{% endblock %}

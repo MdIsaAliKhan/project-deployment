@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Student Groups — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "teacher/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <h1>👥 Practice Groups</h1>
+  <a href="{{ url_for('teacher.create_group') }}" class="btn btn-primary">➕ Create Group</a>
+</div>
+{% if groups %}
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px">
+  {% for g in groups %}
+  <div class="card">
+    <div class="card-body">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <div style="font-weight:700;font-size:1.02rem">{{ g.name }}</div>
+          {% if g.description %}<div class="text-sm text-muted mt-1">{{ g.description[:80] }}</div>{% endif %}
+        </div>
+        <span class="badge badge-purple">{{ g.member_count }} students</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <span class="badge badge-blue">{{ g.exam_count }} practice exams</span>
+        <span class="text-xs text-light" style="display:flex;align-items:center">{{ g.created_at.strftime('%d %b %Y') if g.created_at else '' }}</span>
+      </div>
+      <div class="flex gap-2" style="flex-wrap:wrap">
+        <a href="{{ url_for('teacher.manage_group', group_id=g.id) }}" class="btn btn-primary btn-sm">Manage</a>
+        <a href="{{ url_for('teacher.group_analytics', group_id=g.id) }}" class="btn btn-outline btn-sm">📊 Analytics</a>
+        <a href="{{ url_for('teacher.delete_group', group_id=g.id) }}" class="btn btn-danger btn-sm"
+           onclick="return confirm('Delete this group?')">🗑️</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card"><div class="card-body"><div class="empty-state">
+  <div class="empty-icon">👥</div>
+  <h3>No Groups Yet</h3>
+  <p>Create groups based on student performance to assign targeted practice exams.</p>
+  <a href="{{ url_for('teacher.create_group') }}" class="btn btn-primary mt-3" style="margin-top:16px">Create First Group</a>
+</div></div></div>
+{% endif %}
+{% endblock %}

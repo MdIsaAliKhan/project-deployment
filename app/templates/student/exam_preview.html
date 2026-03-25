@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Exam Preview — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "student/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div style="max-width:680px;margin:0 auto">
+<div class="card">
+  <div class="card-body" style="text-align:center;padding:40px 32px">
+    <div style="font-size:2.5rem;margin-bottom:12px">📋</div>
+    <h1 style="font-size:1.4rem;font-weight:700;margin-bottom:8px">{{ exam.title }}</h1>
+    {% if exam.description %}<p class="text-muted" style="margin-bottom:20px">{{ exam.description }}</p>{% endif %}
+
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:24px 0;text-align:center">
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px">
+        <div style="font-size:1.6rem;font-weight:700;color:var(--accent)">{{ questions|length }}</div>
+        <div class="text-xs text-light" style="text-transform:uppercase;letter-spacing:.4px">Questions</div>
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px">
+        <div style="font-size:1.6rem;font-weight:700;color:var(--accent)">{{ exam.total_marks }}</div>
+        <div class="text-xs text-light" style="text-transform:uppercase;letter-spacing:.4px">Total Marks</div>
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px">
+        <div style="font-size:1.6rem;font-weight:700;color:var(--accent)">{{ exam.duration_minutes }}</div>
+        <div class="text-xs text-light" style="text-transform:uppercase;letter-spacing:.4px">Minutes</div>
+      </div>
+    </div>
+
+    <div class="alert alert-amber" style="text-align:left;margin-bottom:20px">
+      ⚠️ <strong>Important:</strong> Do not switch tabs or leave this window during the exam. Tab switches are recorded and may be flagged.
+    </div>
+
+    {% if attempted %}
+    <a href="{{ url_for('student.result', exam_id=exam.id) }}" class="btn btn-outline btn-lg">📊 View Your Result</a>
+    {% else %}
+    <a href="{{ url_for('student.exam', exam_id=exam.id) }}" class="btn btn-primary btn-lg">Begin Exam →</a>
+    {% endif %}
+  </div>
+</div>
+</div>
+{% endblock %}

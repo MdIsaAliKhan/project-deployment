@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Create Practice Exam — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "teacher/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div><h1>🏋️ Create Practice Exam</h1><p class="text-muted text-sm">For group: {{ group.name }}</p></div>
+  <a href="{{ url_for('teacher.manage_group', group_id=group.id) }}" class="btn btn-ghost">← Back</a>
+</div>
+<div class="card" style="max-width:580px">
+  <div class="card-header">Practice Exam Details</div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="form-group">
+        <label class="form-label">Title *</label>
+        <input type="text" name="title" class="form-control" placeholder="e.g. Algebra Basics Practice" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea name="description" class="form-control" rows="2" placeholder="What this practice covers…"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Duration (minutes)</label>
+          <input type="number" name="duration_minutes" class="form-control" value="30" min="5" max="180">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select name="is_active" class="form-control"><option value="1">Active</option><option value="0">Inactive</option></select>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary">Continue → Add Questions</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

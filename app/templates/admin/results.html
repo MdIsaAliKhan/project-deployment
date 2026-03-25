@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}MCQ Results — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "admin/_sidebar.html" %}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📊 MCQ Submission Results</h1>
+  <p>View and manage all student MCQ exam submissions.</p>
+</div>
+
+<div class="stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-bottom:24px">
+  <div class="stat-card">
+    <div class="sc-icon">📋</div>
+    <div class="sc-val">{{ results|length }}</div>
+    <div class="sc-label">Total Submissions</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span>All Submissions</span>
+    <input type="text" class="form-control" placeholder="🔍 Search…" style="width:220px;padding:7px 12px;font-size:.82rem"
+      oninput="filterTable(this.value,'r-table')">
+  </div>
+  {% if results %}
+  <div class="table-wrap">
+    <table id="r-table">
+      <thead><tr>
+        <th>#</th><th>Student</th><th>Exam</th><th>Score</th><th>Correct</th><th>Wrong</th><th>Skipped</th><th>Tab Switches</th><th>Submitted</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+      {% for r in results %}
+      <tr>
+        <td class="text-xs text-light">{{ loop.index }}</td>
+        <td>
+          <span style="font-weight:600">{{ r.student_name }}</span><br>
+          <span class="text-xs text-light">{{ r.student_email }}</span>
+        </td>
+        <td style="font-weight:500">{{ r.exam_title }}</td>
+        <td>
+          <span style="font-weight:700;color:var(--accent)">{{ r.score }}</span>
+          <span class="text-xs text-light">/ {{ r.total_marks }}</span>
+        </td>
+        <td><span class="badge badge-green">{{ r.correct_count }}</span></td>
+        <td><span class="badge badge-red">{{ r.wrong_count }}</span></td>
+        <td><span class="badge badge-gray">{{ r.skipped_count }}</span></td>
+        <td>
+          {% set ts = r.tab_switches | default(0) %}
+          {% if ts > 0 %}
+            <span class="badge badge-amber">⚠️ {{ ts }}</span>
+          {% else %}
+            <span class="text-light text-xs">—</span>
+          {% endif %}
+        </td>
+        <td class="text-xs text-light">{{ r.submitted_at.strftime('%d %b %Y %H:%M') if r.submitted_at else '—' }}</td>
+        <td>
+          <div class="flex gap-2">
+            <button class="btn btn-ghost btn-sm" onclick="openEdit({{ r.id }},{{ r.score }},{{ r.correct_count }},{{ r.wrong_count }},{{ r.skipped_count }})">Edit</button>
+            <a href="{{ url_for('admin.delete_result', rid=r.id) }}"
+               onclick="return confirm('Delete this result?')"
+               class="btn btn-danger btn-sm">Delete</a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body">
+    <div class="empty-state">
+      <div class="empty-icon">📊</div>
+      <h3>No Results Yet</h3>
+      <p>Student submissions will appear here after they complete exams.</p>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Edit Modal -->
+<div id="edit-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:var(--radius-lg);padding:32px;width:100%;max-width:380px;box-shadow:var(--shadow-lg)">
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:20px">✏️ Edit Result</h2>
+    <form method="POST" id="edit-form" action="">
+      <div class="form-group"><label class="form-label">Score</label><input type="number" name="score" id="e-score" class="form-control" min="0" required></div>
+      <div class="form-group"><label class="form-label">Correct Count</label><input type="number" name="correct_count" id="e-correct" class="form-control" min="0" required></div>
+      <div class="form-group"><label class="form-label">Wrong Count</label><input type="number" name="wrong_count" id="e-wrong" class="form-control" min="0" required></div>
+      <div class="form-group"><label class="form-label">Skipped Count</label><input type="number" name="skipped_count" id="e-skipped" class="form-control" min="0" required></div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-primary" style="flex:1">Save Changes</button>
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('edit-modal').style.display='none'">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function filterTable(q, id) {
+  document.querySelectorAll('#' + id + ' tbody tr').forEach(r =>
+    r.style.display = r.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none');
+}
+function openEdit(rid, score, correct, wrong, skipped) {
+  document.getElementById('edit-form').action = '/admin/result/' + rid + '/edit';
+  document.getElementById('e-score').value = score;
+  document.getElementById('e-correct').value = correct;
+  document.getElementById('e-wrong').value = wrong;
+  document.getElementById('e-skipped').value = skipped;
+  document.getElementById('edit-modal').style.display = 'flex';
+}
+document.getElementById('edit-modal').addEventListener('click', function(e) {
+  if (e.target === this) this.style.display = 'none';
+});
+</script>
+{% endblock %}

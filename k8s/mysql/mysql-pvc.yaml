@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+  namespace: lms
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: gp2        # AWS EKS default storage class
+  resources:
+    requests:
+      storage: 10Gi

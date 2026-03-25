@@ -1,0 +1,113 @@
+name: CI/CD — Build, Push & Deploy to EKS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_REGION:       us-east-1
+  ECR_REPOSITORY:   lms-app
+  EKS_CLUSTER_NAME: lms-eks-cluster
+  K8S_NAMESPACE:    lms
+
+jobs:
+  # ──────────────────────────────────────────────────────────
+  # JOB 1 — Build & push Docker image to ECR
+  # ──────────────────────────────────────────────────────────
+  build-and-push:
+    name: Build & Push to ECR
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.build-image.outputs.image }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag & push image to ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG:    ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker tag  $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+                      $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+  # ──────────────────────────────────────────────────────────
+  # JOB 2 — Deploy to EKS (only on push to main)
+  # ──────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to EKS
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig for EKS
+        run: |
+          aws eks update-kubeconfig \
+            --region $AWS_REGION \
+            --name   $EKS_CLUSTER_NAME
+
+      - name: Replace image placeholder in deployment.yaml
+        env:
+          IMAGE: ${{ needs.build-and-push.outputs.image }}
+        run: |
+          sed -i "s|PLACEHOLDER_ECR_IMAGE|$IMAGE|g" k8s/deployment.yaml
+
+      - name: Apply Kubernetes manifests
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/configmap.yaml
+          kubectl apply -f k8s/secret.yaml
+          kubectl apply -f k8s/mysql/mysql-pvc.yaml
+          kubectl apply -f k8s/mysql/mysql-deployment.yaml
+          kubectl apply -f k8s/mysql/mysql-service.yaml
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
+          kubectl apply -f k8s/hpa.yaml
+          kubectl apply -f monitoring/prometheus-configmap.yaml
+          kubectl apply -f monitoring/prometheus.yaml
+          kubectl apply -f monitoring/grafana.yaml
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/lms-app \
+            --namespace $K8S_NAMESPACE \
+            --timeout=300s
+
+      - name: Show deployment status
+        run: |
+          echo "=== Pods ==="
+          kubectl get pods -n $K8S_NAMESPACE
+          echo "=== Services ==="
+          kubectl get svc  -n $K8S_NAMESPACE
+          echo "=== HPA ==="
+          kubectl get hpa  -n $K8S_NAMESPACE

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account Blocked — ExamPortal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body style="display:block">
+<div class="blocked-page">
+  <div class="icon">🚫</div>
+  <h2>Account Blocked</h2>
+  <p>Your account has been blocked by the administrator. Please contact your institution for assistance.</p>
+  <a href="{{ url_for('auth.logout') }}" class="btn btn-outline mt-3" style="margin-top:16px">← Back to Login</a>
+</div>
+</body>
+</html>

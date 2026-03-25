@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Manage Group — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "teacher/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1>👥 {{ group.name }}</h1>
+    <p class="text-muted text-sm">{{ members|length }} members · {{ practice_exams|length }} practice exams</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="{{ url_for('teacher.group_analytics', group_id=group.id) }}" class="btn btn-outline">📊 Analytics</a>
+    <a href="{{ url_for('teacher.groups') }}" class="btn btn-ghost">← Groups</a>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+  <!-- Members -->
+  <div class="card">
+    <div class="card-header">
+      <span>🎓 Group Members ({{ members|length }})</span>
+    </div>
+    <div class="card-body" style="padding:0">
+    {% if members %}
+    <table>
+      <thead><tr><th>Student</th><th>Avg %</th><th>Action</th></tr></thead>
+      <tbody>
+      {% for m in members %}
+      <tr>
+        <td><div style="font-weight:600">{{ m.name }}</div><div class="text-xs text-light">{{ m.email }}</div></td>
+        <td><span class="{% if m.avg_pct < 40 %}text-red{% elif m.avg_pct < 60 %}text-amber{% else %}text-green{% endif %} font-semibold">{{ m.avg_pct }}%</span></td>
+        <td><a href="{{ url_for('teacher.remove_group_member', group_id=group.id, student_id=m.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Remove from group?')">Remove</a></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="padding:32px"><div class="empty-icon">🎓</div><p>No members yet. Add students below.</p></div>
+    {% endif %}
+    </div>
+    {% if non_members %}
+    <div class="card-footer">
+      <form method="POST" action="{{ url_for('teacher.add_group_member', group_id=group.id) }}">
+        <div class="form-group" style="margin-bottom:8px">
+          <label class="form-label">Add Students</label>
+          <select name="student_ids" multiple class="form-control" size="4">
+            {% for s in non_members %}
+            <option value="{{ s.id }}">{{ s.name }} ({{ s.email }})</option>
+            {% endfor %}
+          </select>
+          <div class="form-hint">Hold Ctrl/Cmd to select multiple</div>
+        </div>
+        <button type="submit" class="btn btn-success btn-sm">Add Selected</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Practice Exams -->
+  <div class="card">
+    <div class="card-header">
+      <span>🏋️ Practice Exams</span>
+      <a href="{{ url_for('teacher.create_practice_exam', group_id=group.id) }}" class="btn btn-primary btn-sm">➕ Create</a>
+    </div>
+    {% if practice_exams %}
+    <table>
+      <thead><tr><th>Title</th><th>Q's</th><th>Submissions</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for pe in practice_exams %}
+      <tr>
+        <td><div style="font-weight:600">{{ pe.title }}</div></td>
+        <td>{{ pe.question_count }}</td>
+        <td>{{ pe.submission_count }}</td>
+        <td>
+          <div class="flex gap-2">
+            <a href="{{ url_for('teacher.practice_exam_questions', exam_id=pe.id) }}" class="btn btn-ghost btn-sm">✏️</a>
+            <a href="{{ url_for('teacher.practice_exam_results', exam_id=pe.id) }}" class="btn btn-outline btn-sm">📊</a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="card-body">
+      <div class="empty-state" style="padding:32px"><div class="empty-icon">🏋️</div>
+      <p>No practice exams. Create one to help this group improve.</p></div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "admin/_sidebar.html" %}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>🏛️ Administration Dashboard</h1>
+  <p>System overview and management controls</p>
+</div>
+
+<div class="stats-grid">
+  <a href="{{ url_for('admin.teachers') }}" class="stat-card clickable" style="text-decoration:none">
+    <div class="sc-icon">👨‍🏫</div>
+    <div class="sc-val">{{ teacher_count }}</div>
+    <div class="sc-label">Instructors</div>
+  </a>
+  <a href="{{ url_for('admin.students') }}" class="stat-card clickable" style="text-decoration:none">
+    <div class="sc-icon">🎓</div>
+    <div class="sc-val sc-purple">{{ student_count }}</div>
+    <div class="sc-label">Students</div>
+  </a>
+  <div class="stat-card">
+    <div class="sc-icon">📋</div>
+    <div class="sc-val">{{ exam_count }}</div>
+    <div class="sc-label">MCQ Exams</div>
+  </div>
+  <a href="{{ url_for('admin.text_exams') }}" class="stat-card clickable" style="text-decoration:none">
+    <div class="sc-icon">📝</div>
+    <div class="sc-val sc-purple">{{ text_exam_count }}</div>
+    <div class="sc-label">Text Exams</div>
+  </a>
+  <a href="{{ url_for('admin.results') }}" class="stat-card clickable" style="text-decoration:none">
+    <div class="sc-icon">📊</div>
+    <div class="sc-val sc-green">{{ result_count }}</div>
+    <div class="sc-label">Submissions</div>
+  </a>
+  <div class="stat-card">
+    <div class="sc-icon">⏳</div>
+    <div class="sc-val sc-amber">{{ pending_eval }}</div>
+    <div class="sc-label">Pending Eval</div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-icon">🚫</div>
+    <div class="sc-val sc-red">{{ blocked_count }}</div>
+    <div class="sc-label">Blocked Students</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><span>⚙️ System Settings</span></div>
+  <div class="card-body">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <div style="font-weight:600;margin-bottom:3px">Face Authentication</div>
+        <div style="font-size:.83rem;color:var(--text2)">Require face verification after password login for teachers and students.</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span class="badge {% if face_auth_enabled %}badge-green{% else %}badge-gray{% endif %}">
+          {% if face_auth_enabled %}✅ Enabled{% else %}⚪ Disabled{% endif %}
+        </span>
+        <form method="POST" action="{{ url_for('admin.toggle_face_auth') }}" style="margin:0">
+          <button type="submit" class="btn {% if face_auth_enabled %}btn-danger{% else %}btn-success{% endif %} btn-sm">
+            {% if face_auth_enabled %}Disable{% else %}Enable{% endif %}
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

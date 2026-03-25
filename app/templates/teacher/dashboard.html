@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Instructor Dashboard — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "teacher/_sidebar.html" %}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>👨‍🏫 Instructor Dashboard</h1>
+  <p>Welcome back, <strong>{{ current_user.name }}</strong>. Here's your academic overview.</p>
+</div>
+
+<div class="stats-grid">
+  <a href="{{ url_for('teacher.my_exams') }}" class="stat-card clickable" style="text-decoration:none">
+    <div class="sc-icon">📋</div>
+    <div class="sc-val">{{ exam_count }}</div>
+    <div class="sc-label">MCQ Exams</div>
+  </a>
+  <a href="{{ url_for('teacher.text_exams') }}" class="stat-card clickable" style="text-decoration:none">
+    <div class="sc-icon">📝</div>
+    <div class="sc-val sc-purple">{{ text_exam_count }}</div>
+    <div class="sc-label">Text Exams</div>
+  </a>
+  <div class="stat-card">
+    <div class="sc-icon">❓</div>
+    <div class="sc-val sc-amber">{{ total_questions }}</div>
+    <div class="sc-label">Total Questions</div>
+  </div>
+  <a href="{{ url_for('teacher.my_results') }}" class="stat-card clickable" style="text-decoration:none">
+    <div class="sc-icon">📊</div>
+    <div class="sc-val sc-green">{{ total_submissions }}</div>
+    <div class="sc-label">Submissions</div>
+  </a>
+  <a href="{{ url_for('teacher.groups') }}" class="stat-card clickable" style="text-decoration:none">
+    <div class="sc-icon">👥</div>
+    <div class="sc-val sc-purple">{{ group_count }}</div>
+    <div class="sc-label">Groups</div>
+  </a>
+  <div class="stat-card">
+    <div class="sc-icon">🏋️</div>
+    <div class="sc-val sc-amber">{{ practice_count }}</div>
+    <div class="sc-label">Practice Exams</div>
+  </div>
+</div>
+
+{% if recent_exams %}
+<div class="card">
+  <div class="card-header">
+    <span>📋 Recent MCQ Exams</span>
+    <a href="{{ url_for('teacher.my_exams') }}" class="btn btn-outline btn-sm">View All</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th>Title</th><th>Questions</th><th>Submissions</th><th>Marks</th><th>Status</th><th>Actions</th>
+      </tr></thead>
+      <tbody>
+      {% for exam in recent_exams %}
+      <tr>
+        <td>
+          <span style="font-weight:600">{{ exam.title }}</span>
+          {% if exam.description %}<br><span class="text-xs text-light">{{ exam.description[:55] }}</span>{% endif %}
+        </td>
+        <td>{{ exam.question_count }}</td>
+        <td>{{ exam.submission_count }}</td>
+        <td>{{ exam.total_marks }}</td>
+        <td>
+          {% if exam.is_active %}
+            <span class="badge badge-green">● Active</span>
+          {% else %}
+            <span class="badge badge-gray">● Inactive</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="flex gap-2">
+            <a href="{{ url_for('teacher.exam_questions', exam_id=exam.id) }}" class="btn btn-ghost btn-sm">Edit</a>
+            <a href="{{ url_for('teacher.exam_results', exam_id=exam.id) }}" class="btn btn-outline btn-sm">Results</a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card"><div class="card-body">
+  <div class="empty-state">
+    <div class="empty-icon">📋</div>
+    <h3>No Exams Yet</h3>
+    <p>Create your first MCQ or text exam to get started.</p>
+    <a href="{{ url_for('teacher.create_exam') }}" class="btn btn-primary mt-3" style="margin-top:16px">Create MCQ Exam</a>
+  </div>
+</div></div>
+{% endif %}
+{% endblock %}

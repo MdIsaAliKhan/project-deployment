@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lms-config
+  namespace: lms
+data:
+  MYSQL_HOST: "mysql-service"      # points to MySQL K8s service
+  MYSQL_USER: "lmsuser"
+  MYSQL_DB:   "online_exam"
+  FLASK_ENV:  "production"

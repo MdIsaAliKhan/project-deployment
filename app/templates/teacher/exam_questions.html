@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Exam Questions — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "teacher/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1>✏️ {{ exam.title }}</h1>
+    <p class="text-muted text-sm">{{ questions|length }} questions · {{ exam.total_marks }} total marks</p>
+  </div>
+  <a href="{{ url_for('teacher.my_exams') }}" class="btn btn-ghost">← Back to Exams</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:start">
+  <div>
+    {% if questions %}
+    {% for q in questions %}
+    <div class="card mb-3" style="margin-bottom:16px">
+      <div class="card-body">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+          <div style="flex:1">
+            <div class="text-xs text-light mb-1">Q{{ loop.index }} · {{ q.marks }} mark(s)</div>
+            <div style="font-weight:600;margin-bottom:10px">{{ q.question }}</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              {% for opt, label in [('a','A'),('b','B'),('c','C'),('d','D')] %}
+              <div style="padding:6px 10px;border-radius:6px;font-size:.82rem;
+                {% if q.correct_option == opt %}background:var(--green-bg);border:1px solid var(--green-bd);color:var(--green);font-weight:600
+                {% else %}background:var(--surface2);border:1px solid var(--border){% endif %}">
+                <strong>{{ label }}.</strong> {{ q['option_' + opt] }}
+                {% if q.correct_option == opt %} ✓{% endif %}
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+          <a href="{{ url_for('teacher.delete_question', q_id=q.id) }}" class="btn btn-danger btn-sm"
+             onclick="return confirm('Delete this question?')">🗑️</a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="card"><div class="card-body">
+      <div class="empty-state"><div class="empty-icon">❓</div><h3>No Questions Yet</h3>
+      <p>Add questions using the form on the right.</p></div>
+    </div></div>
+    {% endif %}
+  </div>
+
+  <!-- Add question form -->
+  <div class="card" style="position:sticky;top:20px">
+    <div class="card-header">➕ Add Question</div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('teacher.add_question', exam_id=exam.id) }}">
+        <div class="form-group">
+          <label class="form-label">Question *</label>
+          <textarea name="question" class="form-control" rows="3" required placeholder="Enter the question text…"></textarea>
+        </div>
+        {% for opt, label in [('a','Option A'),('b','Option B'),('c','Option C'),('d','Option D')] %}
+        <div class="form-group">
+          <label class="form-label">{{ label }} *</label>
+          <input type="text" name="{{ opt }}" class="form-control" required placeholder="{{ label }}">
+        </div>
+        {% endfor %}
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="form-group">
+            <label class="form-label">Correct Answer</label>
+            <select name="correct" class="form-control">
+              <option value="a">A</option><option value="b">B</option>
+              <option value="c">C</option><option value="d">D</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Marks</label>
+            <input type="number" name="marks" class="form-control" value="1" min="1" max="100">
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Add Question</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Student Dashboard — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "student/_sidebar.html" %}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>🎓 Student Dashboard</h1>
+  <p>Welcome, <strong>{{ current_user.name }}</strong>. Here's your academic overview.</p>
+</div>
+
+<div class="stats-grid">
+  <a href="{{ url_for('student.exams') }}" class="stat-card clickable" style="text-decoration:none">
+    <div class="sc-icon">📋</div>
+    <div class="sc-val">{{ available_exams|length }}</div>
+    <div class="sc-label">MCQ Exams</div>
+  </a>
+  <a href="{{ url_for('student.results') }}" class="stat-card clickable" style="text-decoration:none">
+    <div class="sc-icon">✅</div>
+    <div class="sc-val sc-green">{{ completed_count }}</div>
+    <div class="sc-label">Completed</div>
+  </a>
+  <a href="{{ url_for('student.text_exams') }}" class="stat-card clickable" style="text-decoration:none">
+    <div class="sc-icon">📝</div>
+    <div class="sc-val sc-purple">{{ text_exam_count }}</div>
+    <div class="sc-label">Text Exams</div>
+  </a>
+  <a href="{{ url_for('student.practice') }}" class="stat-card clickable" style="text-decoration:none">
+    <div class="sc-icon">🏋️</div>
+    <div class="sc-val sc-amber">{{ practice_count }}</div>
+    <div class="sc-label">Practice Exams</div>
+  </a>
+  {% if best_score is not none %}
+  <div class="stat-card">
+    <div class="sc-icon">🏆</div>
+    <div class="sc-val sc-green">{{ best_score }}</div>
+    <div class="sc-label">Best Score</div>
+  </div>
+  {% endif %}
+</div>
+
+{% if available_exams %}
+<div class="card">
+  <div class="card-header">
+    <span>📋 Available MCQ Exams</span>
+    <a href="{{ url_for('student.exams') }}" class="btn btn-outline btn-sm">View All</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Exam Title</th><th>Questions</th><th>Duration</th><th>Marks</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>
+      {% for exam in available_exams %}
+      <tr>
+        <td>
+          <span style="font-weight:600">{{ exam.title }}</span>
+          {% if exam.description %}<br><span class="text-xs text-light">{{ exam.description[:60] }}</span>{% endif %}
+        </td>
+        <td>{{ exam.question_count }}</td>
+        <td>{{ exam.duration_minutes }} min</td>
+        <td>{{ exam.total_marks }}</td>
+        <td>
+          {% if exam.attempted %}
+            <span class="badge badge-green">✅ Submitted</span>
+          {% else %}
+            <span class="badge badge-blue">📋 Available</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if exam.attempted %}
+            <a href="{{ url_for('student.result', exam_id=exam.id) }}" class="btn btn-outline btn-sm">View Result</a>
+          {% else %}
+            <a href="{{ url_for('student.exam_preview', exam_id=exam.id) }}" class="btn btn-primary btn-sm">Start Exam →</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card"><div class="card-body">
+  <div class="empty-state">
+    <div class="empty-icon">📋</div>
+    <h3>No Exams Available</h3>
+    <p>No active exams at this time. Check back later.</p>
+  </div>
+</div></div>
+{% endif %}
+{% endblock %}

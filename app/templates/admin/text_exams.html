@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Text Exams (Admin) — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "admin/_sidebar.html" %}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📝 Text / Descriptive Exams</h1>
+  <p>Manage result visibility and monitor evaluation progress for all text-based exams.</p>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span>All Text Exams</span>
+    <input type="text" class="form-control" placeholder="🔍 Search…" style="width:220px;padding:7px 12px;font-size:.82rem"
+      oninput="filterTable(this.value,'te-table')">
+  </div>
+  {% if exams %}
+  <div class="table-wrap">
+    <table id="te-table">
+      <thead><tr>
+        <th>Title</th><th>Instructor</th><th>Marks</th><th>Submissions</th><th>Evaluated</th><th>Status</th><th>Results</th><th>Action</th>
+      </tr></thead>
+      <tbody>
+      {% for exam in exams %}
+      <tr>
+        <td>
+          <span style="font-weight:600">{{ exam.title }}</span>
+          {% if exam.description %}<br><span class="text-xs text-light">{{ exam.description[:50] }}</span>{% endif %}
+        </td>
+        <td class="text-muted">{{ exam.teacher_name }}</td>
+        <td>{{ exam.total_marks }}</td>
+        <td>{{ exam.submission_count }}</td>
+        <td>
+          {% set pct = (exam.evaluated_count / exam.submission_count * 100)|int if exam.submission_count > 0 else 0 %}
+          <span class="badge {% if pct == 100 %}badge-green{% elif pct > 0 %}badge-amber{% else %}badge-gray{% endif %}">
+            {{ exam.evaluated_count }}/{{ exam.submission_count }}
+          </span>
+        </td>
+        <td>
+          {% if exam.is_active %}
+            <span class="badge badge-green">Active</span>
+          {% else %}
+            <span class="badge badge-gray">Inactive</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if exam.result_published %}
+            <span class="badge badge-green">✅ Published</span>
+          {% else %}
+            <span class="badge badge-amber">⏸ Hidden</span>
+          {% endif %}
+        </td>
+        <td>
+          <a href="{{ url_for('admin.toggle_text_publish', exam_id=exam.id) }}"
+             class="btn btn-sm {% if exam.result_published %}btn-danger{% else %}btn-success{% endif %}">
+            {% if exam.result_published %}Hide Results{% else %}Publish Results{% endif %}
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body">
+    <div class="empty-state">
+      <div class="empty-icon">📝</div>
+      <h3>No Text Exams Yet</h3>
+      <p>Instructors can create text/descriptive exams from their dashboard.</p>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+function filterTable(q, id) {
+  document.querySelectorAll('#' + id + ' tbody tr').forEach(r =>
+    r.style.display = r.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none');
+}
+</script>
+{% endblock %}

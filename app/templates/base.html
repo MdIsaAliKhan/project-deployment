@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}UniLMS{% endblock %}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<button class="mobile-toggle" onclick="toggleSidebar()" aria-label="Open menu">☰</button>
+
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-icon">🎓</div>
+    <div>
+      <div class="brand-name">UniLMS</div>
+      <div class="brand-sub">Learning Portal</div>
+    </div>
+  </div>
+
+  {% if current_user.is_authenticated %}
+  <div class="sidebar-user">
+    <div class="avatar">{{ current_user.name[0].upper() }}</div>
+    <div>
+      <div class="uname">{{ current_user.name }}</div>
+      <div class="urole">
+        {% if current_user.role == 'admin' %}Administrator
+        {% elif current_user.role == 'teacher' %}Instructor
+        {% else %}Student{% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% block sidebar_links %}{% endblock %}
+
+  <div class="sidebar-spacer"></div>
+  <a href="{{ url_for('auth.logout') }}" class="nav-link danger">
+    <span class="nav-icon">🚪</span> Sign Out
+  </a>
+</nav>
+
+<main class="main-content">
+  {% block content %}{% endblock %}
+</main>
+
+<script>
+  function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+  }
+  document.addEventListener('click', function(e) {
+    const sb = document.getElementById('sidebar');
+    if (window.innerWidth <= 768 && sb.classList.contains('open') &&
+        !sb.contains(e.target) && !e.target.closest('.mobile-toggle')) {
+      sb.classList.remove('open');
+    }
+  });
+  // Smart active link: match by pathname prefix, longest wins
+  (function() {
+    const cur = window.location.pathname.replace(/\/$/, '');
+    let best = null, bestLen = 0;
+    document.querySelectorAll('a.nav-link').forEach(link => {
+      link.classList.remove('active');
+      try {
+        const lp = new URL(link.href, location.origin).pathname.replace(/\/$/, '');
+        if (lp === '') return;
+        if (cur === lp) { best = link; bestLen = lp.length + 9999; }
+        else if (cur.startsWith(lp) && lp.length > bestLen) { best = link; bestLen = lp.length; }
+      } catch(_) {}
+    });
+    if (best) best.classList.add('active');
+  })();
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

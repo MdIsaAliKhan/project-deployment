@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Exam Results — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "teacher/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div><h1>📊 {{ exam.title }}</h1><p class="text-muted text-sm">{{ results|length }} submissions</p></div>
+  <a href="{{ url_for('teacher.my_exams') }}" class="btn btn-ghost">← Back</a>
+</div>
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Student</th><th>Score</th><th>%</th><th>Correct</th><th>Wrong</th><th>Skipped</th><th>Submitted</th></tr></thead>
+      <tbody>
+      {% for r in results %}
+      <tr>
+        <td><div style="font-weight:600">{{ r.name }}</div><div class="text-xs text-light">{{ r.email }}</div></td>
+        <td><strong>{{ r.score }}</strong><span class="text-muted">/{{ exam.total_marks }}</span></td>
+        <td>{% if exam.total_marks %}{{ (r.score/exam.total_marks*100)|round(1) }}%{% else %}–{% endif %}</td>
+        <td><span class="badge badge-green">{{ r.correct_count }}</span></td>
+        <td><span class="badge badge-red">{{ r.wrong_count }}</span></td>
+        <td><span class="badge badge-gray">{{ r.skipped_count }}</span></td>
+        <td class="text-xs text-muted">{{ r.submitted_at.strftime('%d %b %Y %H:%M') if r.submitted_at else '-' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" style="text-align:center;padding:32px;color:var(--text3)">No submissions yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

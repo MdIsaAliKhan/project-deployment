@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Text Exams — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "teacher/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <h1>📝 Text / Descriptive Exams</h1>
+  <a href="{{ url_for('teacher.create_text_exam') }}" class="btn btn-primary">➕ Create Text Exam</a>
+</div>
+{% if exams %}
+<div class="card">
+  <div class="table-wrap"><table>
+    <thead><tr><th>Title</th><th>Questions</th><th>Marks</th><th>Duration</th><th>Submissions</th><th>Published</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for exam in exams %}
+    <tr>
+      <td><div style="font-weight:600">{{ exam.title }}</div></td>
+      <td>{{ exam.question_count }}</td>
+      <td>{{ exam.total_marks }}</td>
+      <td>{{ exam.duration_minutes }} min</td>
+      <td>{{ exam.submission_count }}</td>
+      <td>{% if exam.result_published %}<span class="badge badge-green">Published</span>{% else %}<span class="badge badge-amber">Hidden</span>{% endif %}</td>
+      <td>{% if exam.is_active %}<span class="badge badge-green">Active</span>{% else %}<span class="badge badge-gray">Inactive</span>{% endif %}</td>
+      <td>
+        <div class="flex gap-2">
+          <a href="{{ url_for('teacher.text_exam_questions', exam_id=exam.id) }}" class="btn btn-ghost btn-sm">✏️ Edit</a>
+          <a href="{{ url_for('teacher.text_exam_submissions', exam_id=exam.id) }}" class="btn btn-outline btn-sm">Submissions</a>
+          <a href="{{ url_for('teacher.toggle_text_exam', exam_id=exam.id) }}" class="btn btn-amber btn-sm">Toggle</a>
+          <a href="{{ url_for('teacher.delete_text_exam', exam_id=exam.id) }}" class="btn btn-danger btn-sm" onclick="return confirm('Delete?')">🗑️</a>
+        </div>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% else %}
+<div class="card"><div class="card-body"><div class="empty-state"><div class="empty-icon">📝</div>
+<h3>No Text Exams</h3><p>Create descriptive exams for essay-based assessment.</p>
+<a href="{{ url_for('teacher.create_text_exam') }}" class="btn btn-primary mt-3" style="margin-top:16px">Create Text Exam</a></div></div></div>
+{% endif %}
+{% endblock %}

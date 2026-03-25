@@ -1,0 +1,12 @@
+<div class="nav-section">Instructor Panel</div>
+<a href="{{ url_for('teacher.dashboard') }}" class="nav-link"><span class="nav-icon">🏠</span> Dashboard</a>
+<div class="nav-section">MCQ Exams</div>
+<a href="{{ url_for('teacher.my_exams') }}" class="nav-link"><span class="nav-icon">📋</span> My Exams</a>
+<a href="{{ url_for('teacher.create_exam') }}" class="nav-link"><span class="nav-icon">➕</span> Create MCQ Exam</a>
+<a href="{{ url_for('teacher.my_results') }}" class="nav-link"><span class="nav-icon">📊</span> MCQ Results</a>
+<div class="nav-section">Text Exams</div>
+<a href="{{ url_for('teacher.text_exams') }}" class="nav-link"><span class="nav-icon">📝</span> Text Exams</a>
+<a href="{{ url_for('teacher.create_text_exam') }}" class="nav-link"><span class="nav-icon">✍️</span> Create Text Exam</a>
+<div class="nav-section">Practice Groups</div>
+<a href="{{ url_for('teacher.groups') }}" class="nav-link"><span class="nav-icon">👥</span> Student Groups</a>
+<a href="{{ url_for('teacher.create_group') }}" class="nav-link"><span class="nav-icon">➕</span> Create Group</a>

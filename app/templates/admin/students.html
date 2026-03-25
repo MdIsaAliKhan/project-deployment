@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Manage Students — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "admin/_sidebar.html" %}{% endblock %}
+
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1>🎓 Manage Students</h1>
+    <p style="color:var(--text2);font-size:.86rem">View, block/unblock and manage student accounts</p>
+  </div>
+  <button class="btn btn-primary" onclick="document.getElementById('add-modal').style.display='flex'">➕ Add Student</button>
+</div>
+
+<div class="stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-bottom:24px">
+  <div class="stat-card">
+    <div class="sc-icon">🎓</div>
+    <div class="sc-val">{{ students|length }}</div>
+    <div class="sc-label">Total Students</div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-icon">✅</div>
+    <div class="sc-val sc-green">{{ students|selectattr('is_blocked','equalto',0)|list|length }}</div>
+    <div class="sc-label">Active</div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-icon">🚫</div>
+    <div class="sc-val sc-red">{{ students|selectattr('is_blocked','equalto',1)|list|length }}</div>
+    <div class="sc-label">Blocked</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span>All Students</span>
+    <input type="text" class="form-control" placeholder="🔍 Search…" style="width:220px;padding:7px 12px;font-size:.82rem"
+      oninput="filterTable(this.value,'s-table')">
+  </div>
+  {% if students %}
+  <div class="table-wrap">
+    <table id="s-table">
+      <thead><tr><th>#</th><th>Student</th><th>Email</th><th>Attempts</th><th>Best Score</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for s in students %}
+      <tr>
+        <td class="text-light text-xs">{{ loop.index }}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:32px;height:32px;border-radius:50%;background:{% if s.is_blocked %}var(--red){% else %}var(--green){% endif %};display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.82rem;flex-shrink:0">{{ s.name[0].upper() }}</div>
+            <span style="font-weight:600">{{ s.name }}</span>
+          </div>
+        </td>
+        <td class="text-muted">{{ s.email }}</td>
+        <td>{{ s.attempt_count }}</td>
+        <td>{{ s.best_score if s.best_score is not none else '—' }}</td>
+        <td>
+          {% if s.is_blocked %}
+            <span class="badge badge-red">🚫 Blocked</span>
+          {% else %}
+            <span class="badge badge-green">✅ Active</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="flex gap-2">
+            <a href="{{ url_for('admin.block_student', uid=s.id) }}"
+               class="btn btn-sm {% if s.is_blocked %}btn-success{% else %}btn-amber{% endif %}">
+               {% if s.is_blocked %}Unblock{% else %}Block{% endif %}
+            </a>
+            <a href="{{ url_for('admin.delete_student', uid=s.id) }}"
+               onclick="return confirm('Permanently delete this student?')"
+               class="btn btn-danger btn-sm">Delete</a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body">
+    <div class="empty-state">
+      <div class="empty-icon">🎓</div>
+      <h3>No Students Yet</h3>
+      <p>Students can register themselves, or add them manually here.</p>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Add Student Modal -->
+<div id="add-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:var(--radius-lg);padding:32px;width:100%;max-width:420px;box-shadow:var(--shadow-lg)">
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:20px">➕ Add Student</h2>
+    <form method="POST" action="{{ url_for('admin.add_student') }}">
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input type="text" name="name" class="form-control" placeholder="Student full name" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" name="email" class="form-control" placeholder="student@university.edu" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" class="form-control" placeholder="Temporary password" required>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-primary" style="flex:1">Create Account</button>
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('add-modal').style.display='none'">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function filterTable(q, id) {
+  const rows = document.querySelectorAll('#' + id + ' tbody tr');
+  q = q.toLowerCase();
+  rows.forEach(r => r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none');
+}
+document.getElementById('add-modal').addEventListener('click', function(e) {
+  if (e.target === this) this.style.display = 'none';
+});
+</script>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Manage Instructors — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "admin/_sidebar.html" %}{% endblock %}
+
+{% block content %}
+<div class="page-header-row">
+  <div>
+    <h1>👨‍🏫 Manage Instructors</h1>
+    <p style="color:var(--text2);font-size:.86rem">Add and remove teacher accounts</p>
+  </div>
+  <button class="btn btn-primary" onclick="document.getElementById('add-modal').style.display='flex'">➕ Add Instructor</button>
+</div>
+
+<div class="stats-grid" style="grid-template-columns:repeat(auto-fill,minmax(140px,1fr));margin-bottom:24px">
+  <div class="stat-card">
+    <div class="sc-icon">👨‍🏫</div>
+    <div class="sc-val">{{ teachers|length }}</div>
+    <div class="sc-label">Total Instructors</div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-icon">📋</div>
+    <div class="sc-val sc-green">{{ teachers|sum(attribute='exam_count') }}</div>
+    <div class="sc-label">Total Exams</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <span>All Instructors</span>
+    <input type="text" class="form-control" placeholder="🔍 Search…" style="width:220px;padding:7px 12px;font-size:.82rem"
+      oninput="filterTable(this.value,'t-table')">
+  </div>
+  {% if teachers %}
+  <div class="table-wrap">
+    <table id="t-table">
+      <thead><tr><th>#</th><th>Name</th><th>Email</th><th>Exams</th><th>Joined</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for t in teachers %}
+      <tr>
+        <td class="text-light text-xs">{{ loop.index }}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:32px;height:32px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:.82rem;flex-shrink:0">{{ t.name[0].upper() }}</div>
+            <span style="font-weight:600">{{ t.name }}</span>
+          </div>
+        </td>
+        <td class="text-muted">{{ t.email }}</td>
+        <td><span class="badge badge-blue">{{ t.exam_count }} exam{{ 's' if t.exam_count != 1 }}</span></td>
+        <td class="text-xs text-light">{{ t.created_at.strftime('%d %b %Y') if t.created_at else '—' }}</td>
+        <td>
+          <a href="{{ url_for('admin.delete_teacher', uid=t.id) }}"
+             onclick="return confirm('Remove this instructor? Their exams will also be deleted.')"
+             class="btn btn-danger btn-sm">Remove</a>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card-body">
+    <div class="empty-state">
+      <div class="empty-icon">👨‍🏫</div>
+      <h3>No Instructors Yet</h3>
+      <p>Add your first instructor account.</p>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Add Modal -->
+<div id="add-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border-radius:var(--radius-lg);padding:32px;width:100%;max-width:420px;box-shadow:var(--shadow-lg)">
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:20px">➕ Add Instructor</h2>
+    <form method="POST" action="{{ url_for('admin.add_teacher') }}">
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input type="text" name="name" class="form-control" placeholder="Dr. Jane Smith" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email Address</label>
+        <input type="email" name="email" class="form-control" placeholder="instructor@university.edu" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" class="form-control" placeholder="Temporary password" required>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button type="submit" class="btn btn-primary" style="flex:1">Create Account</button>
+        <button type="button" class="btn btn-ghost" onclick="document.getElementById('add-modal').style.display='none'">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function filterTable(q, id) {
+  const rows = document.querySelectorAll('#' + id + ' tbody tr');
+  q = q.toLowerCase();
+  rows.forEach(r => r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none');
+}
+document.getElementById('add-modal').addEventListener('click', function(e) {
+  if (e.target === this) this.style.display = 'none';
+});
+</script>
+{% endblock %}

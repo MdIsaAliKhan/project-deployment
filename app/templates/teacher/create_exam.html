@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Create Exam — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "teacher/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <h1>➕ Create MCQ Exam</h1>
+  <a href="{{ url_for('teacher.my_exams') }}" class="btn btn-ghost">← Back</a>
+</div>
+<div class="card" style="max-width:620px">
+  <div class="card-header">Exam Details</div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="form-group">
+        <label class="form-label">Exam Title *</label>
+        <input type="text" name="title" class="form-control" placeholder="e.g. Mid-Term Mathematics Exam" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description</label>
+        <textarea name="description" class="form-control" rows="3" placeholder="Brief description for students…"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="form-group">
+          <label class="form-label">Duration (minutes)</label>
+          <input type="number" name="duration_minutes" class="form-control" value="30" min="5" max="300">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select name="is_active" class="form-control">
+            <option value="1">Active (visible to students)</option>
+            <option value="0">Inactive (hidden)</option>
+          </select>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary">Continue → Add Questions</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

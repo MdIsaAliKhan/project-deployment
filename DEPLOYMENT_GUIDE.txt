@@ -1,0 +1,186 @@
+# University LMS — Complete EKS Deployment Guide
+# =====================================================================
+# Capstone Project: Deploy to AWS EKS with CI/CD + Grafana Monitoring
+# =====================================================================
+
+## PREREQUISITES — Install these on your local machine
+# ---------------------------------------------------------
+# 1. AWS CLI      https://docs.aws.amazon.com/cli/latest/userguide/install-cliv2.html
+# 2. kubectl      https://kubernetes.io/docs/tasks/tools/
+# 3. Terraform    https://developer.hashicorp.com/terraform/install
+# 4. Docker       https://docs.docker.com/get-docker/
+# 5. Git          https://git-scm.com/
+
+# ─── STEP 1: Configure AWS CLI ───────────────────────────────────────────────
+aws configure
+# Enter:
+#   AWS Access Key ID:     <your key>
+#   AWS Secret Access Key: <your secret>
+#   Default region:        us-east-1
+#   Default output format: json
+
+# ─── STEP 2: Provision EKS with Terraform ────────────────────────────────────
+cd terraform/
+
+terraform init
+terraform plan
+terraform apply -auto-approve
+
+# This creates:
+#   • VPC with public + private subnets
+#   • EKS cluster (v1.29) with 2 worker nodes (t3.medium)
+#   • ECR repository for your Docker image
+#   • NAT Gateway, Internet Gateway, Route Tables
+#
+# At the end, note the ECR URL from outputs:
+#   ecr_repository_url = "123456789.dkr.ecr.us-east-1.amazonaws.com/lms-app"
+
+cd ..
+
+# ─── STEP 3: Configure kubectl to talk to your cluster ───────────────────────
+aws eks update-kubeconfig --region us-east-1 --name lms-eks-cluster
+
+# Verify connection
+kubectl get nodes
+# You should see 2 nodes in Ready state
+
+# ─── STEP 4: Build & Push Docker image to ECR ────────────────────────────────
+
+# Login to ECR (replace ACCOUNT_ID and REGION)
+aws ecr get-login-password --region us-east-1 \
+  | docker login --username AWS --password-stdin \
+    YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
+
+# Build image
+docker build -t lms-app .
+
+# Tag it
+docker tag lms-app:latest \
+  YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/lms-app:latest
+
+# Push to ECR
+docker push YOUR_ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/lms-app:latest
+
+# ─── STEP 5: Update k8s/deployment.yaml with your ECR image URL ──────────────
+# Open k8s/deployment.yaml and replace this line:
+#   image: YOUR_AWS_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/lms-app:latest
+# With your actual ECR URL from Step 4.
+
+# ─── STEP 6: Update Kubernetes Secrets ───────────────────────────────────────
+# Base64-encode your MySQL password and Flask secret key:
+echo -n "your_db_password"    | base64   # copy this value
+echo -n "your_flask_secret"   | base64   # copy this value
+
+# Open k8s/secret.yaml and replace the placeholder base64 values.
+
+# ─── STEP 7: Deploy to Kubernetes ────────────────────────────────────────────
+# Apply in order:
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/secret.yaml
+
+# MySQL (database) first
+kubectl apply -f k8s/mysql/mysql-pvc.yaml
+kubectl apply -f k8s/mysql/mysql-deployment.yaml
+kubectl apply -f k8s/mysql/mysql-service.yaml
+
+# Wait for MySQL to be ready
+kubectl wait --for=condition=ready pod -l app=mysql -n lms --timeout=120s
+
+# Import the database schema into MySQL pod
+kubectl exec -n lms -it $(kubectl get pod -n lms -l app=mysql -o jsonpath='{.items[0].metadata.name}') \
+  -- mysql -u lmsuser -p online_exam < schema.sql
+
+# Flask app
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/hpa.yaml
+
+# ─── STEP 8: Get the public URL of your app ──────────────────────────────────
+kubectl get svc lms-service -n lms
+# Look for EXTERNAL-IP — this is your app's public URL
+# It may take 2-3 minutes for the AWS LoadBalancer to provision
+
+# ─── STEP 9: Deploy Prometheus + Grafana Monitoring ─────────────────────────
+kubectl apply -f monitoring/prometheus-configmap.yaml
+kubectl apply -f monitoring/prometheus.yaml
+kubectl apply -f monitoring/grafana.yaml
+
+# Wait for Grafana LoadBalancer IP
+kubectl get svc grafana-service -n lms
+# Open http://GRAFANA_EXTERNAL_IP in browser
+# Login: admin / admin123
+
+# ─── STEP 10: Set up Grafana Dashboards ──────────────────────────────────────
+# In Grafana UI:
+# 1. Go to Dashboards → Import
+# 2. Import dashboard ID 6417  (Kubernetes Cluster Overview)
+# 3. Import dashboard ID 15760 (Kubernetes HPA)
+# 4. Import dashboard ID 1860  (Node Exporter Full)
+# Select "Prometheus" as data source for each
+
+# ─── STEP 11: Set up CI/CD with GitHub Actions ───────────────────────────────
+# 1. Push your code to GitHub
+# 2. Go to your repo → Settings → Secrets and variables → Actions
+# 3. Add these secrets:
+#      AWS_ACCESS_KEY_ID      = your AWS access key
+#      AWS_SECRET_ACCESS_KEY  = your AWS secret key
+#
+# 4. Edit .github/workflows/deploy.yml:
+#      Change AWS_REGION to your region
+#      Change EKS_CLUSTER_NAME if you changed it in Terraform
+#
+# Now every push to 'main' will:
+#   → Build Docker image
+#   → Push to ECR
+#   → Deploy to EKS automatically
+
+# ─── STEP 12: Verify HPA (Demo for Capstone) ────────────────────────────────
+# Check HPA status
+kubectl get hpa -n lms
+
+# Watch it auto-scale in real time
+kubectl get hpa lms-hpa -n lms --watch
+
+# To generate load and trigger HPA scaling (optional demo):
+kubectl run load-test --image=busybox --restart=Never -n lms -- \
+  /bin/sh -c "while true; do wget -q -O- http://lms-service; done"
+
+# Watch pods scale up in Grafana → Kubernetes HPA dashboard
+
+# ─── CLEANUP (when done) ─────────────────────────────────────────────────────
+# Delete K8s resources
+kubectl delete namespace lms
+
+# Destroy Terraform infrastructure (CAUTION — deletes everything)
+cd terraform && terraform destroy -auto-approve
+
+# ─── FILE STRUCTURE SUMMARY ──────────────────────────────────────────────────
+# lms_final_fixed/
+# ├── Dockerfile                        ← containerises the Flask app
+# ├── .dockerignore
+# ├── requirements.txt                  ← includes gunicorn
+# ├── run.py
+# ├── app/                              ← Flask app code
+# ├── k8s/
+# │   ├── namespace.yaml
+# │   ├── configmap.yaml
+# │   ├── secret.yaml
+# │   ├── deployment.yaml               ← LMS app deployment (2 replicas)
+# │   ├── service.yaml                  ← LoadBalancer service
+# │   ├── hpa.yaml                      ← Auto-scaling (2-10 pods)
+# │   └── mysql/
+# │       ├── mysql-pvc.yaml
+# │       ├── mysql-deployment.yaml
+# │       └── mysql-service.yaml
+# ├── terraform/
+# │   ├── main.tf                       ← VPC + EKS + ECR
+# │   ├── variables.tf
+# │   └── outputs.tf
+# ├── monitoring/
+# │   ├── prometheus-configmap.yaml
+# │   ├── prometheus.yaml
+# │   └── grafana.yaml
+# └── .github/
+#     └── workflows/
+#         └── deploy.yml                ← CI/CD pipeline

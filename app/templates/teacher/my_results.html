@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Results — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "teacher/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div class="page-header"><h1>📊 Student Results</h1><p>All MCQ exam submissions for your exams</p></div>
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Student</th><th>Exam</th><th>Score</th><th>Correct</th><th>Wrong</th><th>Skipped</th><th>Tab Switches</th><th>Date</th></tr></thead>
+      <tbody>
+      {% for r in results %}
+      <tr>
+        <td><div style="font-weight:600">{{ r.student_name }}</div><div class="text-xs text-light">{{ r.student_email }}</div></td>
+        <td>{{ r.exam_title }}</td>
+        <td>
+          <span style="font-weight:700;color:var(--accent)">{{ r.score }}</span>
+          <span class="text-muted">/{{ r.total_marks }}</span>
+          {% if r.total_marks %}
+          <div class="progress mt-1" style="margin-top:4px;width:80px">
+            <div class="progress-bar {% if (r.score/r.total_marks*100) >= 60 %}green{% elif (r.score/r.total_marks*100) >= 40 %}amber{% else %}red{% endif %}"
+                 style="width:{{ (r.score/r.total_marks*100)|round|int }}%"></div>
+          </div>
+          {% endif %}
+        </td>
+        <td><span class="badge badge-green">{{ r.correct_count }}</span></td>
+        <td><span class="badge badge-red">{{ r.wrong_count }}</span></td>
+        <td><span class="badge badge-gray">{{ r.skipped_count }}</span></td>
+        <td>{% set ts = r.tab_switches | default(0) %}{% if ts > 0 %}<span class="badge badge-amber">⚠️ {{ ts }}</span>{% else %}<span class="text-light text-xs">—</span>{% endif %}</td>
+        <td class="text-xs text-muted">{{ r.submitted_at.strftime('%d %b %Y') if r.submitted_at else '-' }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8"><div class="empty-state" style="padding:32px"><div class="empty-icon">📊</div><h3>No Results Yet</h3></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

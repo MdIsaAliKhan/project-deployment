@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Create Text Exam — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "teacher/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <h1>✍️ Create Text Exam</h1>
+  <a href="{{ url_for('teacher.text_exams') }}" class="btn btn-ghost">← Back</a>
+</div>
+<div class="card" style="max-width:620px">
+  <div class="card-header">Exam Details</div>
+  <div class="card-body">
+    <form method="POST">
+      <div class="form-group">
+        <label class="form-label">Exam Title *</label>
+        <input type="text" name="title" class="form-control" placeholder="e.g. Essay Writing Assessment" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Description / Instructions</label>
+        <textarea name="description" class="form-control" rows="3" placeholder="Instructions for students…"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="form-group">
+          <label class="form-label">Duration (minutes)</label>
+          <input type="number" name="duration_minutes" class="form-control" value="60" min="10" max="300">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select name="is_active" class="form-control">
+            <option value="1">Active</option><option value="0">Inactive</option>
+          </select>
+        </div>
+      </div>
+      <div class="alert alert-info" style="margin-bottom:16px">
+        📌 After creating the exam, you'll be able to add descriptive questions with marks and model answers.
+      </div>
+      <button type="submit" class="btn btn-primary">Continue → Add Questions</button>
+    </form>
+  </div>
+</div>
+{% endblock %}

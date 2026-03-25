@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Create Group — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "teacher/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <h1>➕ Create Student Group</h1>
+  <a href="{{ url_for('teacher.groups') }}" class="btn btn-ghost">← Back</a>
+</div>
+<div style="display:grid;grid-template-columns:380px 1fr;gap:24px;align-items:start">
+  <div class="card" style="position:sticky;top:20px">
+    <div class="card-header">Group Details</div>
+    <div class="card-body">
+      <form method="POST">
+        <div class="form-group">
+          <label class="form-label">Group Name *</label>
+          <input type="text" name="name" class="form-control" placeholder="e.g. Weak Students — Batch A" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea name="description" class="form-control" rows="3" placeholder="Purpose or criteria of this group…"></textarea>
+        </div>
+        <div class="alert alert-info mb-3" style="margin-bottom:16px;font-size:.82rem">
+          💡 After creating the group, you can add students and create practice exams for them.
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Create Group</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span>📊 All Students (sorted by performance)</span>
+      <span class="badge badge-gray">{{ students|length }} total</span>
+    </div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Name</th><th>Email</th><th>Avg Score</th><th>Attempts</th></tr></thead>
+      <tbody>
+      {% for s in students %}
+      <tr>
+        <td style="font-weight:600">{{ s.name }}</td>
+        <td class="text-sm text-muted">{{ s.email }}</td>
+        <td>
+          <div class="flex items-center gap-2">
+            <div class="progress" style="width:70px">
+              <div class="progress-bar {% if s.avg_pct >= 60 %}green{% elif s.avg_pct >= 40 %}amber{% else %}red{% endif %}"
+                   style="width:{{ s.avg_pct }}%"></div>
+            </div>
+            <span class="text-sm {% if s.avg_pct < 40 %}text-red{% elif s.avg_pct < 60 %}text-amber{% else %}text-green{% endif %}">{{ s.avg_pct }}%</span>
+          </div>
+        </td>
+        <td class="text-sm text-muted">{{ s.attempts }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text3)">No students found.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+  </div>
+</div>
+{% endblock %}

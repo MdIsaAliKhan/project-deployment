@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Text Exam Questions — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "teacher/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div><h1>📝 {{ exam.title }}</h1>
+  <p class="text-muted text-sm">{{ questions|length }} question(s) · {{ exam.total_marks }} total marks</p></div>
+  <a href="{{ url_for('teacher.text_exams') }}" class="btn btn-ghost">← Back</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 400px;gap:24px;align-items:start">
+  <div>
+    {% for q in questions %}
+    <div class="card mb-3" style="margin-bottom:16px">
+      <div class="card-body">
+        <div style="display:flex;justify-content:space-between;gap:12px">
+          <div style="flex:1">
+            <div class="text-xs text-light mb-1">Q{{ loop.index }} · {{ q.marks }} mark(s)</div>
+            <div style="font-weight:600;margin-bottom:10px;font-size:.95rem">{{ q.question }}</div>
+            {% if q.model_answer %}
+            <div style="background:var(--green-bg);border:1px solid var(--green-bd);border-radius:8px;padding:10px 12px;font-size:.82rem;color:var(--green)">
+              <strong>Model Answer:</strong> {{ q.model_answer[:200] }}{% if q.model_answer|length > 200 %}…{% endif %}
+            </div>
+            {% endif %}
+            {% if q.key_points %}
+            <div style="background:var(--accent-lt);border:1px solid var(--accent-bd);border-radius:8px;padding:10px 12px;font-size:.82rem;color:var(--accent);margin-top:8px">
+              <strong>Key Points:</strong> {{ q.key_points[:150] }}{% if q.key_points|length > 150 %}…{% endif %}
+            </div>
+            {% endif %}
+          </div>
+          <a href="{{ url_for('teacher.delete_text_question', q_id=q.id) }}" class="btn btn-danger btn-sm"
+             onclick="return confirm('Delete?')">🗑️</a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="card"><div class="card-body"><div class="empty-state"><div class="empty-icon">📝</div>
+    <h3>No Questions Yet</h3><p>Add descriptive questions using the form.</p></div></div></div>
+    {% endfor %}
+  </div>
+
+  <div class="card" style="position:sticky;top:20px">
+    <div class="card-header">➕ Add Question</div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('teacher.add_text_question', exam_id=exam.id) }}">
+        <div class="form-group">
+          <label class="form-label">Question *</label>
+          <textarea name="question" class="form-control" rows="3" required placeholder="Enter descriptive question…"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Marks</label>
+          <input type="number" name="marks" class="form-control" value="5" min="1" max="100">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Model Answer <span class="text-light">(optional)</span></label>
+          <textarea name="model_answer" class="form-control" rows="3" placeholder="Expected answer for teacher reference…"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Key Points <span class="text-light">(optional)</span></label>
+          <textarea name="key_points" class="form-control" rows="2" placeholder="Bullet points to check in student answers…"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Add Question</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

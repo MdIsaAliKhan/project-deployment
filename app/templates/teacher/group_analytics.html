@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Group Analytics — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "teacher/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div><h1>📊 Analytics — {{ group.name }}</h1><p class="text-muted text-sm">Group performance overview</p></div>
+  <a href="{{ url_for('teacher.manage_group', group_id=group.id) }}" class="btn btn-ghost">← Back</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+  <div class="card">
+    <div class="card-header">📋 Practice Exam Stats</div>
+    {% if exam_stats %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Exam</th><th>Attempts</th><th>Avg</th><th>High</th><th>Low</th></tr></thead>
+      <tbody>
+      {% for e in exam_stats %}
+      <tr>
+        <td style="font-weight:600">{{ e.title }}</td>
+        <td>{{ e.attempt_count }}</td>
+        <td><strong>{{ e.avg_score }}</strong><span class="text-muted">/{{ e.total_marks }}</span></td>
+        <td><span class="badge badge-green">{{ e.max_score }}</span></td>
+        <td><span class="badge badge-red">{{ e.min_score }}</span></td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <div class="card-body"><div class="empty-state" style="padding:24px"><p>No practice exams yet.</p></div></div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-header">🎓 Student Performance</div>
+    {% if student_stats %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Student</th><th>Attempts</th><th>Avg %</th><th>Best</th></tr></thead>
+      <tbody>
+      {% for s in student_stats %}
+      <tr>
+        <td><div style="font-weight:600">{{ s.name }}</div><div class="text-xs text-light">{{ s.email }}</div></td>
+        <td>{{ s.attempts }}</td>
+        <td>
+          <div class="flex items-center gap-2">
+            <div class="progress" style="width:60px">
+              <div class="progress-bar {% if s.avg_pct >= 60 %}green{% elif s.avg_pct >= 40 %}amber{% else %}red{% endif %}" style="width:{{ s.avg_pct }}%"></div>
+            </div>
+            <span class="{% if s.avg_pct < 40 %}text-red{% elif s.avg_pct < 60 %}text-amber{% else %}text-green{% endif %} font-semibold text-sm">{{ s.avg_pct }}%</span>
+          </div>
+        </td>
+        <td>{{ s.best_score }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}
+    <div class="card-body"><div class="empty-state" style="padding:24px"><p>No attempts yet.</p></div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

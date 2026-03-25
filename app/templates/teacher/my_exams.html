@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}My Exams — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "teacher/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <h1>📋 My MCQ Exams</h1>
+  <a href="{{ url_for('teacher.create_exam') }}" class="btn btn-primary">➕ Create Exam</a>
+</div>
+{% if exams %}
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Title</th><th>Questions</th><th>Marks</th><th>Duration</th><th>Submissions</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+      {% for exam in exams %}
+      <tr>
+        <td>
+          <div style="font-weight:600">{{ exam.title }}</div>
+          {% if exam.description %}<div class="text-xs text-light mt-1">{{ exam.description[:70] }}</div>{% endif %}
+        </td>
+        <td>{{ exam.question_count }}</td>
+        <td>{{ exam.total_marks }}</td>
+        <td>{{ exam.duration_minutes }} min</td>
+        <td>{{ exam.submission_count }}</td>
+        <td>
+          {% if exam.is_active %}<span class="badge badge-green">Active</span>
+          {% else %}<span class="badge badge-gray">Inactive</span>{% endif %}
+        </td>
+        <td>
+          <div class="flex gap-2">
+            <a href="{{ url_for('teacher.exam_questions', exam_id=exam.id) }}" class="btn btn-ghost btn-sm">✏️ Edit</a>
+            <a href="{{ url_for('teacher.exam_results', exam_id=exam.id) }}" class="btn btn-outline btn-sm">📊</a>
+            <a href="{{ url_for('teacher.toggle_exam_active', exam_id=exam.id) }}" class="btn btn-amber btn-sm">Toggle</a>
+            <a href="{{ url_for('teacher.delete_exam', exam_id=exam.id) }}" class="btn btn-danger btn-sm"
+               onclick="return confirm('Delete this exam?')">🗑️</a>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card"><div class="card-body">
+  <div class="empty-state"><div class="empty-icon">📋</div><h3>No Exams Yet</h3>
+  <p>Create your first exam to get started.</p>
+  <a href="{{ url_for('teacher.create_exam') }}" class="btn btn-primary mt-3" style="margin-top:16px">Create Exam</a></div>
+</div></div>
+{% endif %}
+{% endblock %}

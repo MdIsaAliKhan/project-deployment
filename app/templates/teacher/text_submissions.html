@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Text Submissions — UniLMS{% endblock %}
+{% block sidebar_links %}{% include "teacher/_sidebar.html" %}{% endblock %}
+{% block content %}
+<div class="page-header-row">
+  <div><h1>📋 Submissions — {{ exam.title }}</h1><p class="text-muted text-sm">{{ submissions|length }} submission(s)</p></div>
+  <a href="{{ url_for('teacher.text_exams') }}" class="btn btn-ghost">← Back</a>
+</div>
+<div class="card">
+  <div class="table-wrap"><table>
+    <thead><tr><th>Student</th><th>Submitted</th><th>Score</th><th>Status</th><th>Action</th></tr></thead>
+    <tbody>
+    {% for s in submissions %}
+    <tr>
+      <td><div style="font-weight:600">{{ s.student_name }}</div><div class="text-xs text-light">{{ s.student_email }}</div></td>
+      <td class="text-sm text-muted">{{ s.submitted_at.strftime('%d %b %Y %H:%M') if s.submitted_at else '-' }}</td>
+      <td>
+        {% if s.is_evaluated %}
+          <strong>{{ s.total_score }}</strong><span class="text-muted">/{{ exam.total_marks }}</span>
+        {% else %}
+          <span class="text-light">Pending</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if s.is_evaluated %}<span class="badge badge-green">✅ Evaluated</span>
+        {% else %}<span class="badge badge-amber">⏳ Pending</span>{% endif %}
+      </td>
+      <td>
+        <a href="{{ url_for('teacher.evaluate_submission', sub_id=s.id) }}" class="btn btn-primary btn-sm">
+          {% if s.is_evaluated %}📊 View / Re-evaluate{% else %}✏️ Evaluate{% endif %}
+        </a>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" style="text-align:center;padding:32px;color:var(--text3)">No submissions yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

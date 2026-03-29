@@ -86,6 +86,9 @@ jobs:
         run: |
           kubectl apply -f k8s/namespace.yaml
           
+          # Clean up any stranded pod from a previously failed run
+          kubectl delete pod schema-init -n $K8S_NAMESPACE --ignore-not-found=true || true
+          
           # Use tr to carefully strip Windows carriage returns \r
           B64_PASS=$(grep MYSQL_PASSWORD k8s/secret.yaml | awk '{print $2}' | tr -d '\r')
           DB_PASS=$(echo -n "$B64_PASS" | base64 --decode | tr -d '\r' | tr -d '\n')

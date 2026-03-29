@@ -134,27 +134,4 @@ CREATE TABLE IF NOT EXISTS practice_result_details (
     FOREIGN KEY (question_id) REFERENCES practice_questions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- =========================================================
---  Performance Indexes (added to fix slow queries)
--- =========================================================
 
--- results table - most queried by student_id and exam_id
-ALTER TABLE results ADD INDEX IF NOT EXISTS idx_results_student (student_id);
-ALTER TABLE results ADD INDEX IF NOT EXISTS idx_results_exam    (exam_id);
-
--- text_submissions - queried heavily by teacher and admin
-ALTER TABLE text_submissions ADD INDEX IF NOT EXISTS idx_textsub_student (student_id);
-ALTER TABLE text_submissions ADD INDEX IF NOT EXISTS idx_textsub_exam    (exam_id);
-ALTER TABLE text_submissions ADD INDEX IF NOT EXISTS idx_textsub_evaluated (is_evaluated);
-
--- practice_results - queried per group analytics
-ALTER TABLE practice_results ADD INDEX IF NOT EXISTS idx_pracresult_student (student_id);
-ALTER TABLE practice_results ADD INDEX IF NOT EXISTS idx_pracresult_exam    (exam_id);
-
--- group_members - queried on every student page load
-ALTER TABLE group_members ADD INDEX IF NOT EXISTS idx_groupmember_student (student_id);
-
--- questions and practice_questions - queried per exam
-ALTER TABLE questions          ADD INDEX IF NOT EXISTS idx_questions_exam (exam_id);
-ALTER TABLE practice_questions ADD INDEX IF NOT EXISTS idx_pracq_exam     (exam_id);
-ALTER TABLE text_questions     ADD INDEX IF NOT EXISTS idx_textq_exam     (exam_id);

@@ -82,33 +82,29 @@ jobs:
         run: |
           sed -i "s|PLACEHOLDER_ECR_IMAGE|$IMAGE|g" k8s/deployment.yaml
 
-      - name: Initialize Database Schema
+      - name: Initialize Database Schema (Kubernetes Job)
         run: |
+          # Apply namespace and DB credentials before creating the job
           kubectl apply -f k8s/namespace.yaml
+          kubectl apply -f k8s/configmap.yaml
+          kubectl apply -f k8s/secret.yaml
           
-          # Clean up any stranded pod from a previously failed run
-          kubectl delete pod schema-init -n $K8S_NAMESPACE --ignore-not-found=true || true
+          # Remove old job and configmap to ensure fresh load
+          kubectl delete job db-init -n $K8S_NAMESPACE --ignore-not-found=true
+          kubectl delete configmap db-scripts -n $K8S_NAMESPACE --ignore-not-found=true
           
-          # Use tr to carefully strip Windows carriage returns \r
-          B64_PASS=$(grep MYSQL_PASSWORD k8s/secret.yaml | awk '{print $2}' | tr -d '\r')
-          DB_PASS=$(echo -n "$B64_PASS" | base64 --decode | tr -d '\r' | tr -d '\n')
-          DB_HOST=$(grep MYSQL_HOST k8s/configmap.yaml | awk -F'"' '{print $2}' | tr -d '\r')
-          DB_USER=$(grep MYSQL_USER k8s/configmap.yaml | awk -F'"' '{print $2}' | tr -d '\r')
-          
-          kubectl run schema-init --image=mysql:8.0 --restart=Never --namespace=$K8S_NAMESPACE --env="MYSQL_PWD=${DB_PASS}" --command -- sleep 600
-          kubectl wait --for=condition=ready pod/schema-init -n $K8S_NAMESPACE --timeout=300s
-          
-          # Small delay to ensure pod networking is up
-          sleep 10
-          
-          kubectl exec -i -n $K8S_NAMESPACE schema-init -- mysql -h "$DB_HOST" -u "$DB_USER" -e "CREATE DATABASE IF NOT EXISTS online_exam CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-          kubectl exec -i -n $K8S_NAMESPACE schema-init -- mysql -h "$DB_HOST" -u "$DB_USER" online_exam < schema.sql
-          
+          # Load the SQL scripts into a ConfigMap
           if [ -f migrate_tab_switches.sql ]; then
-            kubectl exec -i -n $K8S_NAMESPACE schema-init -- mysql -h "$DB_HOST" -u "$DB_USER" online_exam < migrate_tab_switches.sql
+            kubectl create configmap db-scripts --from-file=schema.sql --from-file=migrate_tab_switches.sql -n $K8S_NAMESPACE
+          else
+            kubectl create configmap db-scripts --from-file=schema.sql -n $K8S_NAMESPACE
           fi
           
-          kubectl delete pod schema-init -n $K8S_NAMESPACE
+          # Start the job
+          kubectl apply -f k8s/db-init-job.yaml
+          
+          # Wait for the job to complete
+          kubectl wait --for=condition=complete job/db-init -n $K8S_NAMESPACE --timeout=300s
 
       - name: Apply Kubernetes manifests
         run: |

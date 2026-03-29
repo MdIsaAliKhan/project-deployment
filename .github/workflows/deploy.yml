@@ -104,7 +104,11 @@ jobs:
           kubectl apply -f k8s/db-init-job.yaml
           
           # Wait for the job to complete
-          kubectl wait --for=condition=complete job/db-init -n $K8S_NAMESPACE --timeout=300s
+          if ! kubectl wait --for=condition=complete job/db-init -n $K8S_NAMESPACE --timeout=300s; then
+            echo "==== DATABASE INITIALIZATION FAILED ===="
+            kubectl logs job/db-init -n $K8S_NAMESPACE || true
+            exit 1
+          fi
 
       - name: Apply Kubernetes manifests
         run: |

@@ -16,14 +16,14 @@ spec:
             - |
               set -e
               echo "Connecting to MySQL at $MYSQL_HOST..."
-              mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS online_exam CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+              mysql --ssl-mode=REQUIRED -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" -e "CREATE DATABASE IF NOT EXISTS online_exam CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
               
               echo "Importing base schema..."
-              mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" online_exam < /scripts/schema.sql
+              mysql --ssl-mode=REQUIRED -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" online_exam < /scripts/schema.sql
               
               if [ -f /scripts/migrate_tab_switches.sql ]; then
                 echo "Importing tab switches migration..."
-                mysql -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" online_exam < /scripts/migrate_tab_switches.sql
+                mysql --ssl-mode=REQUIRED -h "$MYSQL_HOST" -u "$MYSQL_USER" -p"$MYSQL_PASSWORD" online_exam < /scripts/migrate_tab_switches.sql
               fi
               
               echo "Database initialization completed successfully!"

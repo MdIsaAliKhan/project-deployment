@@ -8,4 +8,4 @@ data:
   MYSQL_USER: "lmsadmin"
   MYSQL_DB: "online_exam"
   FLASK_ENV: "production"
-  MYSQL_SSL: "false"
+  MYSQL_SSL: "true"

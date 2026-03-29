@@ -10,6 +10,11 @@ spec:
   selector:
     matchLabels:
       app: lms-app
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0      # zero-downtime deployments
   template:
     metadata:
       labels:
@@ -19,15 +24,19 @@ spec:
         prometheus.io/port:   "5000"
         prometheus.io/path:   "/metrics"
     spec:
+      # Graceful shutdown — allow in-flight requests to complete
+      terminationGracePeriodSeconds: 30
+
       containers:
         - name: lms-app
-          # ── This placeholder is replaced automatically by the CI/CD pipeline ──
-          # ── To deploy manually run: bash scripts/deploy.sh ──
+          # CI/CD pipeline replaces PLACEHOLDER_ECR_IMAGE automatically
           image: PLACEHOLDER_ECR_IMAGE
           imagePullPolicy: Always
           ports:
             - containerPort: 5000
+
           env:
+            # ── Non-sensitive config from ConfigMap ──────────────────────
             - name: MYSQL_HOST
               valueFrom:
                 configMapKeyRef:
@@ -43,6 +52,18 @@ spec:
                 configMapKeyRef:
                   name: lms-config
                   key: MYSQL_DB
+            - name: FLASK_ENV
+              valueFrom:
+                configMapKeyRef:
+                  name: lms-config
+                  key: FLASK_ENV
+            - name: MYSQL_SSL
+              valueFrom:
+                configMapKeyRef:
+                  name: lms-config
+                  key: MYSQL_SSL
+
+            # ── Sensitive values from Secret ─────────────────────────────
             - name: MYSQL_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -53,23 +74,40 @@ spec:
                 secretKeyRef:
                   name: lms-secret
                   key: SECRET_KEY
+
           resources:
             requests:
-              cpu: "250m"
+              cpu:    "250m"
               memory: "512Mi"
             limits:
-              cpu: "1000m"
+              cpu:    "1000m"
               memory: "1Gi"
+
+          # Liveness — restart pod if app is truly dead
           livenessProbe:
             httpGet:
               path: /login
               port: 5000
-            initialDelaySeconds: 30
-            periodSeconds: 15
-            failureThreshold: 3
+            initialDelaySeconds: 40
+            periodSeconds:       20
+            failureThreshold:    3
+            timeoutSeconds:      5
+
+          # Readiness — only send traffic when pod is ready
           readinessProbe:
             httpGet:
               path: /login
               port: 5000
-            initialDelaySeconds: 15
-            periodSeconds: 10
+            initialDelaySeconds: 20
+            periodSeconds:       10
+            failureThreshold:    3
+            timeoutSeconds:      5
+
+          # Startup probe — extra time for face_recognition to load
+          startupProbe:
+            httpGet:
+              path: /login
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds:       5
+            failureThreshold:    12   # 12 * 5s = 60s max startup time

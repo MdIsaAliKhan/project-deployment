@@ -4,7 +4,8 @@ metadata:
   name: lms-config
   namespace: lms
 data:
-  MYSQL_HOST: "mysql-service"      # points to MySQL K8s service
-  MYSQL_USER: "lmsuser"
-  MYSQL_DB:   "online_exam"
-  FLASK_ENV:  "production"
+  MYSQL_HOST: "lms-eks-cluster-mysql.c8d64ucku0mx.us-east-1.rds.amazonaws.com"
+  MYSQL_USER: "lmsadmin"
+  MYSQL_DB: "online_exam"
+  FLASK_ENV: "production"
+  MYSQL_SSL: "false"

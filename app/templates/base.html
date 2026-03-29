@@ -10,14 +10,14 @@
 </head>
 <body>
 
-<button class="mobile-toggle" onclick="toggleSidebar()" aria-label="Open menu">☰</button>
+<button class="mobile-toggle" onclick="toggleSidebar()" aria-label="Open menu">&#9776;</button>
 
 <nav class="sidebar" id="sidebar">
   <div class="sidebar-brand">
-    <div class="brand-icon">🎓</div>
+    <div class="brand-icon">&#127891;</div>
     <div>
-      <div class="brand-name">UniLMS</div>
-      <div class="brand-sub">Learning Portal</div>
+      
+      <div class="brand-sub">University Learning Portal</div>
     </div>
   </div>
 
@@ -39,7 +39,7 @@
 
   <div class="sidebar-spacer"></div>
   <a href="{{ url_for('auth.logout') }}" class="nav-link danger">
-    <span class="nav-icon">🚪</span> Sign Out
+    <span class="nav-icon">&#128682;</span> Sign Out
   </a>
 </nav>
 
@@ -77,3 +77,6 @@
 {% block extra_js %}{% endblock %}
 </body>
 </html>
+
+
+

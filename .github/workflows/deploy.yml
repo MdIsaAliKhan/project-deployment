@@ -82,6 +82,27 @@ jobs:
         run: |
           sed -i "s|PLACEHOLDER_ECR_IMAGE|$IMAGE|g" k8s/deployment.yaml
 
+      - name: Initialize Database Schema
+        run: |
+          kubectl apply -f k8s/namespace.yaml
+          
+          B64_PASS=$(grep MYSQL_PASSWORD k8s/secret.yaml | awk '{print $2}')
+          DB_PASS=$(echo $B64_PASS | base64 --decode)
+          DB_HOST=$(grep MYSQL_HOST k8s/configmap.yaml | awk -F'"' '{print $2}')
+          DB_USER=$(grep MYSQL_USER k8s/configmap.yaml | awk -F'"' '{print $2}')
+          
+          kubectl run schema-init --image=mysql:8.0 --restart=Never --namespace=$K8S_NAMESPACE --env="MYSQL_PWD=$DB_PASS" --command -- sleep 120
+          kubectl wait --for=condition=ready pod/schema-init -n $K8S_NAMESPACE --timeout=60s
+          
+          kubectl exec -i -n $K8S_NAMESPACE schema-init -- mysql -h $DB_HOST -u $DB_USER -e "CREATE DATABASE IF NOT EXISTS online_exam CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          kubectl exec -i -n $K8S_NAMESPACE schema-init -- mysql -h $DB_HOST -u $DB_USER online_exam < schema.sql
+          
+          if [ -f migrate_tab_switches.sql ]; then
+            kubectl exec -i -n $K8S_NAMESPACE schema-init -- mysql -h $DB_HOST -u $DB_USER online_exam < migrate_tab_switches.sql
+          fi
+          
+          kubectl delete pod schema-init -n $K8S_NAMESPACE
+
       - name: Apply Kubernetes manifests
         run: |
           kubectl apply -f k8s/namespace.yaml

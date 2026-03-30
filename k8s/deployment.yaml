@@ -1,113 +1,67 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: lms-app
-  namespace: lms
-  labels:
-    app: lms-app
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: lms-app
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0      # zero-downtime deployments
-  template:
-    metadata:
-      labels:
-        app: lms-app
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port:   "5000"
-        prometheus.io/path:   "/metrics"
-    spec:
-      # Graceful shutdown — allow in-flight requests to complete
-      terminationGracePeriodSeconds: 30
+name: Auto Deploy to EKS
 
-      containers:
-        - name: lms-app
-          # CI/CD pipeline replaces PLACEHOLDER_ECR_IMAGE automatically
-          image: PLACEHOLDER_ECR_IMAGE
-          imagePullPolicy: Always
-          ports:
-            - containerPort: 5000
+on:
+  push:
+    branches: [main]
 
-          env:
-            # ── Non-sensitive config from ConfigMap ──────────────────────
-            - name: MYSQL_HOST
-              valueFrom:
-                configMapKeyRef:
-                  name: lms-config
-                  key: MYSQL_HOST
-            - name: MYSQL_USER
-              valueFrom:
-                configMapKeyRef:
-                  name: lms-config
-                  key: MYSQL_USER
-            - name: MYSQL_DB
-              valueFrom:
-                configMapKeyRef:
-                  name: lms-config
-                  key: MYSQL_DB
-            - name: FLASK_ENV
-              valueFrom:
-                configMapKeyRef:
-                  name: lms-config
-                  key: FLASK_ENV
-            - name: MYSQL_SSL
-              valueFrom:
-                configMapKeyRef:
-                  name: lms-config
-                  key: MYSQL_SSL
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: lms-app
+  EKS_CLUSTER_NAME: lms-eks-cluster
+  K8S_NAMESPACE: lms
 
-            # ── Sensitive values from Secret ─────────────────────────────
-            - name: MYSQL_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: lms-secret
-                  key: MYSQL_PASSWORD
-            - name: SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: lms-secret
-                  key: SECRET_KEY
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
 
-          resources:
-            requests:
-              cpu:    "100m"
-              memory: "256Mi"
-            limits:
-              cpu:    "500m"
-              memory: "512Mi"
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-          # Liveness — restart pod if app is truly dead
-          livenessProbe:
-            httpGet:
-              path: /login
-              port: 5000
-            initialDelaySeconds: 40
-            periodSeconds:       20
-            failureThreshold:    3
-            timeoutSeconds:      5
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region:            ${{ env.AWS_REGION }}
 
-          # Readiness — only send traffic when pod is ready
-          readinessProbe:
-            httpGet:
-              path: /login
-              port: 5000
-            initialDelaySeconds: 20
-            periodSeconds:       10
-            failureThreshold:    3
-            timeoutSeconds:      5
+    - name: Login to Amazon ECR
+      run: |
+        aws ecr get-login-password --region $AWS_REGION | \
+        docker login --username AWS --password-stdin \
+        694630903450.dkr.ecr.$AWS_REGION.amazonaws.com
 
-          # Startup probe — extra time for face_recognition to load
-          startupProbe:
-            httpGet:
-              path: /login
-              port: 5000
-            initialDelaySeconds: 10
-            periodSeconds:       5
-            failureThreshold:    12   # 12 * 5s = 60s max startup time
+    - name: Build Image
+      run: |
+        docker build -t lms-app:latest .
+
+    - name: Tag Image
+      run: |
+        docker tag lms-app:latest \
+        694630903450.dkr.ecr.$AWS_REGION.amazonaws.com/lms-app:latest
+
+    - name: Push Image
+      run: |
+        docker push 694630903450.dkr.ecr.$AWS_REGION.amazonaws.com/lms-app:latest
+
+    - name: Connect to EKS
+      run: |
+        aws eks update-kubeconfig \
+          --region $AWS_REGION \
+          --name $EKS_CLUSTER_NAME
+
+    - name: Update Deployment Image
+      run: |
+        kubectl set image deployment/lms-app \
+        lms-app=694630903450.dkr.ecr.$AWS_REGION.amazonaws.com/lms-app:latest \
+        -n $K8S_NAMESPACE
+
+    - name: Restart Deployment (important)
+      run: |
+        kubectl rollout restart deployment/lms-app -n $K8S_NAMESPACE
+
+    - name: Wait for rollout (stable)
+      run: |
+        kubectl rollout status deployment/lms-app \
+        -n $K8S_NAMESPACE \
+        --timeout=600s || true

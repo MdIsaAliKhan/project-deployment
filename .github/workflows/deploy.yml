@@ -1,138 +1,64 @@
-name: CI/CD — Build, Push & Deploy to EKS
+ name: Auto Deploy to EKS
 
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 env:
-  AWS_REGION:       us-east-1
-  ECR_REPOSITORY:   lms-app
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: lms-app
   EKS_CLUSTER_NAME: lms-eks-cluster
-  K8S_NAMESPACE:    lms
+  K8S_NAMESPACE: lms
 
 jobs:
-  # ──────────────────────────────────────────────────────────
-  # JOB 1 — Build & push Docker image to ECR
-  # ──────────────────────────────────────────────────────────
-  build-and-push:
-    name: Build & Push to ECR
-    runs-on: ubuntu-latest
-    outputs:
-      image: ${{ steps.build-image.outputs.image }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ env.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build, tag & push image to ECR
-        id: build-image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          IMAGE_TAG:    ${{ github.sha }}
-        run: |
-          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          docker tag  $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-                      $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
-          echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
-
-  # ──────────────────────────────────────────────────────────
-  # JOB 2 — Deploy to EKS (only on push to main)
-  # ──────────────────────────────────────────────────────────
   deploy:
-    name: Deploy to EKS
     runs-on: ubuntu-latest
-    needs: build-and-push
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ env.AWS_REGION }}
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region:            ${{ env.AWS_REGION }}
 
-      - name: Update kubeconfig for EKS
-        run: |
-          aws eks update-kubeconfig \
-            --region $AWS_REGION \
-            --name   $EKS_CLUSTER_NAME
+    - name: Login to Amazon ECR
+      id: login-ecr
+      run: |
+        aws ecr get-login-password --region $AWS_REGION | \
+        docker login --username AWS --password-stdin \
+        694630903450.dkr.ecr.$AWS_REGION.amazonaws.com
 
-      - name: Replace image placeholder in deployment.yaml
-        env:
-          IMAGE: ${{ needs.build-and-push.outputs.image }}
-        run: |
-          sed -i "s|PLACEHOLDER_ECR_IMAGE|$IMAGE|g" k8s/deployment.yaml
+    - name: Build Docker Image
+      run: |
+        docker build -t $ECR_REPOSITORY:latest .
 
-      - name: Initialize Database Schema (Kubernetes Job)
-        run: |
-          # Apply namespace and DB credentials before creating the job
-          kubectl apply -f k8s/namespace.yaml
-          kubectl apply -f k8s/configmap.yaml
-          kubectl apply -f k8s/secret.yaml
-          
-          # Remove old job and configmap to ensure fresh load
-          kubectl delete job db-init -n $K8S_NAMESPACE --ignore-not-found=true
-          kubectl delete configmap db-scripts -n $K8S_NAMESPACE --ignore-not-found=true
-          
-          # Load the SQL scripts into a ConfigMap
-          if [ -f migrate_tab_switches.sql ]; then
-            kubectl create configmap db-scripts --from-file=schema.sql --from-file=migrate_tab_switches.sql -n $K8S_NAMESPACE
-          else
-            kubectl create configmap db-scripts --from-file=schema.sql -n $K8S_NAMESPACE
-          fi
-          
-          # Start the job
-          kubectl apply -f k8s/db-init-job.yaml
-          
-          # Wait for the job to complete
-          if ! kubectl wait --for=condition=complete job/db-init -n $K8S_NAMESPACE --timeout=300s; then
-            echo "==== DATABASE INITIALIZATION FAILED ===="
-            kubectl logs job/db-init -n $K8S_NAMESPACE || true
-            exit 1
-          fi
+    - name: Tag Image
+      run: |
+        docker tag $ECR_REPOSITORY:latest \
+        694630903450.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
 
-      - name: Apply Kubernetes manifests
-        run: |
-          kubectl apply -f k8s/namespace.yaml
-          kubectl apply -f k8s/configmap.yaml
-          kubectl apply -f k8s/secret.yaml
-          kubectl apply -f k8s/deployment.yaml
-          kubectl apply -f k8s/service.yaml
-          kubectl apply -f k8s/hpa.yaml
-          kubectl apply -f monitoring/prometheus-configmap.yaml
-          kubectl apply -f monitoring/prometheus.yaml
-          kubectl apply -f monitoring/grafana.yaml
+    - name: Push to ECR
+      run: |
+        docker push 694630903450.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest
 
-      - name: Wait for rollout
-        run: |
-          kubectl rollout status deployment/lms-app \
-            --namespace $K8S_NAMESPACE \
-            --timeout=300s
+    - name: Connect to EKS
+      run: |
+        aws eks update-kubeconfig \
+          --region $AWS_REGION \
+          --name $EKS_CLUSTER_NAME
 
-      - name: Show deployment status
-        run: |
-          echo "=== Pods ==="
-          kubectl get pods -n $K8S_NAMESPACE
-          echo "=== Services ==="
-          kubectl get svc  -n $K8S_NAMESPACE
-          echo "=== HPA ==="
-          kubectl get hpa  -n $K8S_NAMESPACE
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl set image deployment/lms-app \
+        lms-app=694630903450.dkr.ecr.$AWS_REGION.amazonaws.com/$ECR_REPOSITORY:latest \
+        -n $K8S_NAMESPACE
+
+    - name: Wait for rollout
+      run: |
+        kubectl rollout status deployment/lms-app \
+        --namespace $K8S_NAMESPACE \
+        --timeout=600s
